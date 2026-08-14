@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ABAS, ALL_FIELDS, COL_ORDER, NEXT } from '../lib/board'
 import { loadBoard, saveProcesso } from '../lib/api'
 import { missingRequired } from '../lib/fields'
@@ -38,6 +38,13 @@ export function useBoard(
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Espelho sempre atualizado dos itens, para computar o patch de forma
+  // síncrona (fora do updater do setState) antes de persistir.
+  const itemsRef = useRef<BoardItem[]>([])
+  useEffect(() => {
+    itemsRef.current = items
+  }, [items])
+
   const reload = useCallback(() => {
     setLoading(true)
     loadBoard()
@@ -61,13 +68,14 @@ export function useBoard(
       mutate: (p: Processo) => Partial<Pick<Processo, 'campos' | 'obs' | 'log' | 'status'>>,
     ) => {
       if (!currentUserId) return
-      let patch: Partial<Pick<Processo, 'campos' | 'obs' | 'log' | 'status'>> = {}
+      const it = itemsRef.current.find((x) => x.processo.id === id)
+      if (!it) return
+      // Computa o patch a partir do estado atual (ref) — não dentro do updater.
+      const patch = mutate(it.processo)
       setItems((prev) =>
-        prev.map((it) => {
-          if (it.processo.id !== id) return it
-          patch = mutate(it.processo)
-          return { ...it, processo: { ...it.processo, ...patch } }
-        }),
+        prev.map((x) =>
+          x.processo.id === id ? { ...x, processo: { ...x.processo, ...patch } } : x,
+        ),
       )
       saveProcesso(id, patch).catch((e) => {
         onToast('Erro ao salvar — recarregando.')
