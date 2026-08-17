@@ -2,7 +2,14 @@ import { useAuth } from '../auth/AuthProvider'
 import { avatarColor, initial } from '../lib/format'
 import { Icon } from './Icon'
 
-export type AppView = 'mural' | 'processos' | 'contas' | 'vencimentos' | 'extrato' | 'manutencao'
+export type AppView =
+  | 'mural'
+  | 'processos'
+  | 'contas'
+  | 'vencimentos'
+  | 'extrato'
+  | 'manutencao'
+  | 'folha'
 
 export function Sidebar({
   view,
@@ -43,6 +50,11 @@ export function Sidebar({
       <NavItem icon="wrench" label="Manutenção" active={view === 'manutencao'} onClick={() => onNavigate('manutencao')} />
 
       <div className="px-2.5 pb-1.5 pt-3.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-2">
+        Departamento Pessoal
+      </div>
+      <NavItem icon="users" label="Folha de Pagamento" active={view === 'folha'} onClick={() => onNavigate('folha')} />
+
+      <div className="px-2.5 pb-1.5 pt-3.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-2">
         Financeiro
       </div>
       <NavItem icon="wallet" label="Contas a pagar" active={view === 'contas'} onClick={() => onNavigate('contas')} />
@@ -80,7 +92,7 @@ function NavItem({
   active,
   onClick,
 }: {
-  icon: 'grid' | 'wallet' | 'calendar' | 'sparkles' | 'wrench' | 'bank'
+  icon: 'grid' | 'wallet' | 'calendar' | 'sparkles' | 'wrench' | 'bank' | 'users'
   label: string
   active: boolean
   onClick: () => void

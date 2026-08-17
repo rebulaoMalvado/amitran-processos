@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { ContasView } from './ContasView'
 import { ExtratoView } from './ExtratoView'
 import { ManutencaoView } from './ManutencaoView'
+
+// Carregada sob demanda (traz o parser de xlsx, que é pesado).
+const FolhaView = lazy(() => import('./FolhaView').then((m) => ({ default: m.FolhaView })))
 import { MuralView } from './MuralView'
 import { ProcessosView } from './ProcessosView'
 import { VencimentosView } from './VencimentosView'
@@ -30,6 +33,15 @@ function AppShellInner() {
       {view === 'vencimentos' && <VencimentosView />}
       {view === 'extrato' && <ExtratoView />}
       {view === 'manutencao' && <ManutencaoView />}
+      {view === 'folha' && (
+        <Suspense
+          fallback={
+            <main className="flex flex-1 items-center justify-center text-sm text-muted-2">Carregando…</main>
+          }
+        >
+          <FolhaView />
+        </Suspense>
+      )}
     </div>
   )
 }
