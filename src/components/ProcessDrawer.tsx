@@ -249,7 +249,9 @@ export function ProcessDrawer({ item, profiles, board, onClose }: Props) {
             </span>
           )}
         </div>
-        {FIELDS[aba].map((f) => renderField(f, current))}
+        {FIELDS[aba]
+          .filter((f) => !f.showIf || f.showIf(campos))
+          .map((f) => renderField(f, current))}
         {FIELDS[aba].length === 0 && (
           <div className="mb-1 text-[12.5px] text-muted-2">
             Etapa final — sem campos a preencher, apenas observações e histórico.
