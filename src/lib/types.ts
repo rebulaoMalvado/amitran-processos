@@ -155,6 +155,23 @@ export interface Manutencao {
   updated_at: string
 }
 
+// Transação de extrato bancário importada (OFX).
+export interface ExtratoTransacao {
+  id: string
+  fitid: string
+  acctid: string
+  bankid: string | null
+  data: string
+  valor: number
+  tipo: string | null
+  descricao: string | null
+  conferido: boolean
+  conferido_by: string | null
+  conferido_at: string | null
+  created_by: string | null
+  created_at: string
+}
+
 // Post do agente no Mural do Claude.
 export interface ClaudeUpdate {
   id: string

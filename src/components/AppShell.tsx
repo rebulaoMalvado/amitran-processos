@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ContasView } from './ContasView'
+import { ExtratoView } from './ExtratoView'
 import { ManutencaoView } from './ManutencaoView'
 import { MuralView } from './MuralView'
 import { ProcessosView } from './ProcessosView'
@@ -27,6 +28,7 @@ function AppShellInner() {
       {view === 'processos' && <ProcessosView />}
       {view === 'contas' && <ContasView />}
       {view === 'vencimentos' && <VencimentosView />}
+      {view === 'extrato' && <ExtratoView />}
       {view === 'manutencao' && <ManutencaoView />}
     </div>
   )

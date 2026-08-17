@@ -2,7 +2,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { avatarColor, initial } from '../lib/format'
 import { Icon } from './Icon'
 
-export type AppView = 'mural' | 'processos' | 'contas' | 'vencimentos' | 'manutencao'
+export type AppView = 'mural' | 'processos' | 'contas' | 'vencimentos' | 'extrato' | 'manutencao'
 
 export function Sidebar({
   view,
@@ -47,6 +47,7 @@ export function Sidebar({
       </div>
       <NavItem icon="wallet" label="Contas a pagar" active={view === 'contas'} onClick={() => onNavigate('contas')} />
       <NavItem icon="calendar" label="Vencimentos" active={view === 'vencimentos'} onClick={() => onNavigate('vencimentos')} />
+      <NavItem icon="bank" label="Extrato" active={view === 'extrato'} onClick={() => onNavigate('extrato')} />
 
       <div className="flex-1" />
 
@@ -79,7 +80,7 @@ function NavItem({
   active,
   onClick,
 }: {
-  icon: 'grid' | 'wallet' | 'calendar' | 'sparkles' | 'wrench'
+  icon: 'grid' | 'wallet' | 'calendar' | 'sparkles' | 'wrench' | 'bank'
   label: string
   active: boolean
   onClick: () => void
