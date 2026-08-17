@@ -87,6 +87,7 @@ export interface BoardItem {
 export type ContaCategoria =
   | 'embalagem'
   | 'manutencao'
+  | 'combustivel'
   | 'imposto'
   | 'terceirizacao'
   | 'aluguel'
@@ -96,6 +97,7 @@ export type ContaCategoria =
   | 'internet_telefone'
   | 'seguros'
   | 'pedagio'
+  | 'marketing'
   | 'diversos'
 
 export type ContaStatus = 'pendente' | 'aberta' | 'paga'

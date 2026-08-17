@@ -8,6 +8,7 @@ const CONTA_COLS =
 export const CATEGORIAS: Record<ContaCategoria, { label: string; color: string; bg: string }> = {
   embalagem: { label: 'Embalagem', color: '#085041', bg: '#E1F5EE' },
   manutencao: { label: 'Manutenção', color: '#633806', bg: '#FAEEDA' },
+  combustivel: { label: 'Combustível', color: '#993C1D', bg: '#FAECE7' },
   imposto: { label: 'Imposto', color: '#791F1F', bg: '#FCEBEB' },
   terceirizacao: { label: 'Terceirização', color: '#3C3489', bg: '#EEEDFE' },
   aluguel: { label: 'Aluguel', color: '#0C447C', bg: '#E6F1FB' },
@@ -17,6 +18,7 @@ export const CATEGORIAS: Record<ContaCategoria, { label: string; color: string; 
   internet_telefone: { label: 'Internet / Telefone', color: '#185FA5', bg: '#E6F1FB' },
   seguros: { label: 'Seguros', color: '#534AB7', bg: '#EEEDFE' },
   pedagio: { label: 'Pedágio', color: '#BA7517', bg: '#FAEEDA' },
+  marketing: { label: 'Marketing', color: '#993556', bg: '#FBEAF0' },
   diversos: { label: 'Diversos', color: '#475569', bg: '#F1F3F6' },
 }
 
