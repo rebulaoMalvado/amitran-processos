@@ -2,13 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { brl, fmtDay } from '../lib/format'
 import { parseOfx } from '../lib/ofx'
+import { fetchContas } from '../lib/contas'
+import { bestContaMatch } from '../lib/match'
 import {
+  conciliar,
   deleteTransacao,
+  desconciliar,
   fetchExtrato,
   importarTransacoes,
   setConferido,
 } from '../lib/extrato'
-import type { ExtratoTransacao } from '../lib/types'
+import type { ContaPagar, ExtratoTransacao } from '../lib/types'
 import { Icon } from './Icon'
 import { useToast } from './Toast'
 
@@ -25,6 +29,7 @@ export function ExtratoView() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [txs, setTxs] = useState<ExtratoTransacao[]>([])
+  const [contas, setContas] = useState<ContaPagar[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mes, setMes] = useState<string>('')
@@ -32,9 +37,10 @@ export function ExtratoView() {
 
   function reload() {
     setLoading(true)
-    fetchExtrato()
-      .then((data) => {
-        setTxs(data)
+    Promise.all([fetchExtrato(), fetchContas()])
+      .then(([t, c]) => {
+        setTxs(t)
+        setContas(c)
         setError(null)
       })
       .catch((e) => setError(e.message ?? String(e)))
@@ -42,7 +48,6 @@ export function ExtratoView() {
   }
   useEffect(reload, [])
 
-  // Meses disponíveis (desc). Seleciona o mais recente por padrão.
   const meses = useMemo(() => {
     const s = new Set<string>()
     for (const t of txs) s.add(t.data.slice(0, 7))
@@ -51,6 +56,27 @@ export function ExtratoView() {
   useEffect(() => {
     if (meses.length && !meses.includes(mes)) setMes(meses[0])
   }, [meses, mes])
+
+  const contaById = useMemo(() => {
+    const m = new Map<string, ContaPagar>()
+    for (const c of contas) m.set(c.id, c)
+    return m
+  }, [contas])
+
+  // Contas já ligadas a alguma transação (não sugerir de novo).
+  const linkedContaIds = useMemo(() => {
+    const s = new Set<string>()
+    for (const t of txs) if (t.conta_id) s.add(t.conta_id)
+    return s
+  }, [txs])
+
+  const contasDisponiveis = useMemo(
+    () =>
+      contas.filter(
+        (c) => (c.status === 'aberta' || c.status === 'pendente') && !linkedContaIds.has(c.id),
+      ),
+    [contas, linkedContaIds],
+  )
 
   const doMes = useMemo(() => txs.filter((t) => t.data.slice(0, 7) === mes), [txs, mes])
 
@@ -72,11 +98,10 @@ export function ExtratoView() {
       try {
         const text = await file.text()
         const parsed = parseOfx(text)
-        if (!parsed.length) {
-          toast('Nenhuma transação encontrada no arquivo OFX.')
-        } else {
+        if (!parsed.length) toast('Nenhuma transação encontrada no arquivo OFX.')
+        else {
           const novas = await importarTransacoes(parsed, uid)
-          toast(`${novas} nova(s) transação(ões) importada(s) · ${parsed.length - novas} já existiam.`)
+          toast(`${novas} nova(s) importada(s) · ${parsed.length - novas} já existiam.`)
           reload()
         }
       } catch (err) {
@@ -105,6 +130,28 @@ export function ExtratoView() {
       console.error(err)
       reload()
     })
+  }
+
+  async function fazerConciliacao(t: ExtratoTransacao, c: ContaPagar) {
+    try {
+      await conciliar(t, c, uid)
+      toast(`Conciliado com "${c.descricao}" e baixado.`)
+      reload()
+    } catch (err) {
+      toast('Erro ao conciliar.')
+      console.error(err)
+    }
+  }
+
+  async function desfazerConciliacao(t: ExtratoTransacao) {
+    try {
+      await desconciliar(t, t.conta_id ? contaById.get(t.conta_id) : undefined, uid)
+      toast('Conciliação desfeita.')
+      reload()
+    } catch (err) {
+      toast('Erro ao desfazer.')
+      console.error(err)
+    }
   }
 
   return (
@@ -140,7 +187,6 @@ export function ExtratoView() {
           </div>
         ) : (
           <>
-            {/* Seletor de mês */}
             <div className="mb-4 flex flex-wrap items-center gap-3">
               <label className="flex items-center gap-2 rounded-[9px] border border-border-2 bg-card px-2.5 py-2 text-[12.5px] text-muted">
                 <span className="text-muted-2">Mês</span>
@@ -165,72 +211,95 @@ export function ExtratoView() {
               </div>
             </div>
 
-            {/* Relatório mensal */}
             <div className="mb-5 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
               <StatCard k="Entradas" v={brl(resumo.entradas)} ic="wallet" bg="#EAF6EC" fg="#16A34A" />
               <StatCard k="Saídas" v={brl(Math.abs(resumo.saidas))} ic="wallet" bg="#FCEBEA" fg="#EF4444" />
-              <StatCard
-                k="Saldo do mês"
-                v={brl(resumo.saldo)}
-                ic="bank"
-                bg="#EFF4FF"
-                fg="#3B82F6"
-                danger={resumo.saldo < 0}
-              />
+              <StatCard k="Saldo do mês" v={brl(resumo.saldo)} ic="bank" bg="#EFF4FF" fg="#3B82F6" danger={resumo.saldo < 0} />
             </div>
 
-            {/* Transações */}
             <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-              <table className="w-full min-w-[640px] text-left text-[13px]">
+              <table className="w-full min-w-[820px] text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-border text-[11px] uppercase tracking-wide text-muted-2">
                     <th className="px-4 py-2.5 font-semibold">Data</th>
                     <th className="px-4 py-2.5 font-semibold">Descrição</th>
                     <th className="px-4 py-2.5 text-right font-semibold">Valor</th>
-                    <th className="px-4 py-2.5 text-center font-semibold">Conferido</th>
+                    <th className="px-4 py-2.5 font-semibold">Conciliação</th>
+                    <th className="px-4 py-2.5 text-center font-semibold">Conf.</th>
                     <th className="px-4 py-2.5"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {lista.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-[13px] text-muted-2">
+                      <td colSpan={6} className="px-4 py-10 text-center text-[13px] text-muted-2">
                         Nada neste filtro.
                       </td>
                     </tr>
                   ) : (
-                    lista.map((t) => (
-                      <tr key={t.id} className="border-b border-border last:border-0 hover:bg-[#F9FAFB]">
-                        <td className="whitespace-nowrap px-4 py-3 text-muted">{fmtDay(t.data)}</td>
-                        <td className="px-4 py-3">{t.descricao || <span className="text-muted-2">—</span>}</td>
-                        <td
-                          className={
-                            'whitespace-nowrap px-4 py-3 text-right font-semibold ' +
-                            (t.valor < 0 ? 'text-[#b91c1c]' : 'text-[#15803d]')
-                          }
-                        >
-                          {t.valor < 0 ? '- ' : '+ '}
-                          {brl(Math.abs(Number(t.valor)))}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <input
-                            type="checkbox"
-                            checked={t.conferido}
-                            onChange={() => toggleConf(t)}
-                            className="h-4 w-4 cursor-pointer"
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => remover(t)}
-                            title="Excluir"
-                            className="grid h-7 w-7 place-items-center rounded-md border border-border-2 bg-card text-muted hover:border-[#F6D3D0] hover:bg-[#FCEBEA] hover:text-[#b91c1c]"
+                    lista.map((t) => {
+                      const linked = t.conta_id ? contaById.get(t.conta_id) : undefined
+                      const match =
+                        !t.conta_id && t.valor < 0 ? bestContaMatch(t, contasDisponiveis) : null
+                      return (
+                        <tr key={t.id} className="border-b border-border last:border-0 align-top hover:bg-[#F9FAFB]">
+                          <td className="whitespace-nowrap px-4 py-3 text-muted">{fmtDay(t.data)}</td>
+                          <td className="px-4 py-3">{t.descricao || <span className="text-muted-2">—</span>}</td>
+                          <td
+                            className={
+                              'whitespace-nowrap px-4 py-3 text-right font-semibold ' +
+                              (t.valor < 0 ? 'text-[#b91c1c]' : 'text-[#15803d]')
+                            }
                           >
-                            <Icon name="trash" className="h-3.5 w-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                            {t.valor < 0 ? '- ' : '+ '}
+                            {brl(Math.abs(Number(t.valor)))}
+                          </td>
+                          <td className="px-4 py-3">
+                            {t.conta_id ? (
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1 rounded-md bg-[#EAF6EC] px-1.5 py-0.5 text-[10.5px] font-semibold text-[#15803d]">
+                                  <Icon name="check" className="h-3 w-3" />
+                                  {linked?.descricao ?? 'conta'}
+                                </span>
+                                <button onClick={() => desfazerConciliacao(t)} className="text-[11px] text-muted-2 underline hover:text-muted">
+                                  desfazer
+                                </button>
+                              </div>
+                            ) : match ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="min-w-0">
+                                  <div className="truncate text-[12.5px] font-medium text-text">{match.conta.descricao}</div>
+                                  <div className="text-[11px] text-muted-2">
+                                    {match.conta.favorecido ? match.conta.favorecido + ' · ' : ''}
+                                    vence {fmtDay(match.conta.vencimento)} · {confLabel(match.confianca)}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => fazerConciliacao(t, match.conta)}
+                                  className="rounded-md border border-[#BBE3C4] bg-[#EAF6EC] px-2 py-1 text-[11.5px] font-semibold text-[#15803d] hover:bg-[#DCF0E1]"
+                                >
+                                  Conciliar
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[11.5px] text-muted-2">{t.valor < 0 ? 'sem correspondência' : '—'}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <input type="checkbox" checked={t.conferido} onChange={() => toggleConf(t)} className="h-4 w-4 cursor-pointer" />
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              onClick={() => remover(t)}
+                              title="Excluir"
+                              className="grid h-7 w-7 place-items-center rounded-md border border-border-2 bg-card text-muted hover:border-[#F6D3D0] hover:bg-[#FCEBEA] hover:text-[#b91c1c]"
+                            >
+                              <Icon name="trash" className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })
                   )}
                 </tbody>
               </table>
@@ -240,6 +309,10 @@ export function ExtratoView() {
       </div>
     </main>
   )
+}
+
+function confLabel(c: 'alta' | 'media' | 'baixa'): string {
+  return c === 'alta' ? 'confiança alta' : c === 'media' ? 'confiança média' : 'confiança baixa'
 }
 
 function StatCard({

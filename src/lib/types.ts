@@ -168,6 +168,7 @@ export interface ExtratoTransacao {
   conferido: boolean
   conferido_by: string | null
   conferido_at: string | null
+  conta_id: string | null
   created_by: string | null
   created_at: string
 }
