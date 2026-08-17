@@ -18,7 +18,7 @@ interface Props {
 export function ContaFormDrawer({ conta, deals, onClose, onSubmit }: Props) {
   const [descricao, setDescricao] = useState(conta?.descricao ?? '')
   const [categoria, setCategoria] = useState<ContaPagar['categoria']>(
-    conta?.categoria ?? 'terceiro',
+    conta?.categoria ?? 'diversos',
   )
   const [favorecido, setFavorecido] = useState(conta?.favorecido ?? '')
   const [dealId, setDealId] = useState<string | null>(conta?.deal_id ?? null)

@@ -85,11 +85,18 @@ export interface BoardItem {
 
 // ---- Contas a pagar (módulo Financeiro) ----
 export type ContaCategoria =
-  | 'terceiro'
-  | 'fornecedor'
-  | 'fixa'
-  | 'imposto_veiculo'
-  | 'outro'
+  | 'embalagem'
+  | 'manutencao'
+  | 'imposto'
+  | 'terceirizacao'
+  | 'aluguel'
+  | 'folha'
+  | 'chapas'
+  | 'retirada'
+  | 'internet_telefone'
+  | 'seguros'
+  | 'pedagio'
+  | 'diversos'
 
 export type ContaStatus = 'pendente' | 'aberta' | 'paga'
 

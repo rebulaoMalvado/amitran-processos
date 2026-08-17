@@ -6,11 +6,18 @@ const CONTA_COLS =
 
 // Metadados de categoria (rótulo + cor do badge).
 export const CATEGORIAS: Record<ContaCategoria, { label: string; color: string; bg: string }> = {
-  terceiro: { label: 'Terceiro', color: '#92610a', bg: '#FEF6E3' },
-  fornecedor: { label: 'Fornecedor', color: '#1e4b8f', bg: '#EAF1FC' },
-  fixa: { label: 'Despesa fixa', color: '#6d28d9', bg: '#F3EEFE' },
-  imposto_veiculo: { label: 'Imposto / Veículo', color: '#b91c1c', bg: '#FCEBEA' },
-  outro: { label: 'Outro', color: '#475569', bg: '#F1F3F6' },
+  embalagem: { label: 'Embalagem', color: '#085041', bg: '#E1F5EE' },
+  manutencao: { label: 'Manutenção', color: '#633806', bg: '#FAEEDA' },
+  imposto: { label: 'Imposto', color: '#791F1F', bg: '#FCEBEB' },
+  terceirizacao: { label: 'Terceirização', color: '#3C3489', bg: '#EEEDFE' },
+  aluguel: { label: 'Aluguel', color: '#0C447C', bg: '#E6F1FB' },
+  folha: { label: 'Folha de pagamento', color: '#72243E', bg: '#FBEAF0' },
+  chapas: { label: 'Chapas', color: '#712B13', bg: '#FAECE7' },
+  retirada: { label: 'Retirada', color: '#27500A', bg: '#EAF3DE' },
+  internet_telefone: { label: 'Internet / Telefone', color: '#185FA5', bg: '#E6F1FB' },
+  seguros: { label: 'Seguros', color: '#534AB7', bg: '#EEEDFE' },
+  pedagio: { label: 'Pedágio', color: '#BA7517', bg: '#FAEEDA' },
+  diversos: { label: 'Diversos', color: '#475569', bg: '#F1F3F6' },
 }
 
 export const CATEGORIA_KEYS = Object.keys(CATEGORIAS) as ContaCategoria[]
