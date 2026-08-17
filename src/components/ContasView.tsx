@@ -31,6 +31,7 @@ export function ContasView() {
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('abertas')
   const [viewMode, setViewMode] = useState<ViewMode>('lista')
+  const [showResumo, setShowResumo] = useState(false)
   const [calMonth, setCalMonth] = useState(() => new Date())
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [drawer, setDrawer] = useState<{ open: boolean; conta: ContaPagar | null }>({
@@ -245,28 +246,48 @@ export function ContasView() {
               </div>
             )}
 
-            {/* Prazos de fluxo de caixa */}
-            <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-              <PrazoCard
-                label="A pagar até o 5º dia útil"
-                date={fmtDay(toYMD(prazos.d5))}
-                total={prazos.ate5.total}
-                n={prazos.ate5.n}
+            {/* Resumo (prazos + status) — recolhível */}
+            <button
+              onClick={() => setShowResumo((s) => !s)}
+              className="mb-3.5 flex w-full items-center gap-2 rounded-[10px] border border-border bg-card px-3 py-2 text-[12.5px] font-medium text-muted hover:bg-[#F3F5F8]"
+            >
+              <Icon
+                name="arrow"
+                className={'h-3.5 w-3.5 transition-transform ' + (showResumo ? 'rotate-90' : '')}
               />
-              <PrazoCard
-                label="A pagar até o dia 20"
-                date={fmtDay(toYMD(prazos.d20))}
-                total={prazos.ate20.total}
-                n={prazos.ate20.n}
-              />
-            </div>
+              {showResumo ? 'Ocultar resumo' : 'Mostrar resumo'}
+              {!showResumo && (
+                <span className="ml-auto text-[12px] text-muted-2">
+                  A pagar {brl(stats.totalAberto)}
+                  {stats.nVencido > 0 ? ` · vencidas ${brl(stats.totalVencido)}` : ''}
+                </span>
+              )}
+            </button>
 
-            {/* Stats de status */}
-            <div className="mb-5 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
-              <StatCard k="A pagar (em aberto)" v={brl(stats.totalAberto)} sub={`${stats.nAberto} contas`} ic="wallet" bg="#EFF4FF" fg="#3B82F6" />
-              <StatCard k="Vencidas" v={brl(stats.totalVencido)} sub={`${stats.nVencido} contas`} ic="alert" bg="#FCEBEA" fg="#EF4444" alert={stats.nVencido > 0} />
-              <StatCard k="Pagas" v={brl(stats.totalPago)} sub={`${stats.nPago} contas`} ic="check" bg="#EAF6EC" fg="#16A34A" />
-            </div>
+            {showResumo && (
+              <>
+                <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                  <PrazoCard
+                    label="A pagar até o 5º dia útil"
+                    date={fmtDay(toYMD(prazos.d5))}
+                    total={prazos.ate5.total}
+                    n={prazos.ate5.n}
+                  />
+                  <PrazoCard
+                    label="A pagar até o dia 20"
+                    date={fmtDay(toYMD(prazos.d20))}
+                    total={prazos.ate20.total}
+                    n={prazos.ate20.n}
+                  />
+                </div>
+
+                <div className="mb-5 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+                  <StatCard k="A pagar (em aberto)" v={brl(stats.totalAberto)} sub={`${stats.nAberto} contas`} ic="wallet" bg="#EFF4FF" fg="#3B82F6" />
+                  <StatCard k="Vencidas" v={brl(stats.totalVencido)} sub={`${stats.nVencido} contas`} ic="alert" bg="#FCEBEA" fg="#EF4444" alert={stats.nVencido > 0} />
+                  <StatCard k="Pagas" v={brl(stats.totalPago)} sub={`${stats.nPago} contas`} ic="check" bg="#EAF6EC" fg="#16A34A" />
+                </div>
+              </>
+            )}
 
             {viewMode === 'lista' ? (
               <>
