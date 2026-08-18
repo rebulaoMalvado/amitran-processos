@@ -190,8 +190,8 @@ export function FolhaView() {
             </div>
 
             <div className="mt-3 text-[11.5px] text-muted-2">
-              HE = 2h por dia de viagem (SV/CV/V). Domingos e feriados nacionais contam como
-              <b> 100%</b>; demais dias como HE normais. Feriados municipais podem ser adicionados depois.
+              Viagem (SV/CV/V): <b>2h</b> por dia útil (50%) e <b>8h</b> em domingo/feriado (100%).
+              Feriados nacionais já entram; municipais podem ser adicionados depois.
             </div>
           </>
         )}

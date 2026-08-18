@@ -92,7 +92,8 @@ export function calcOvertime(colab: FolhaColaborador): Overtime {
     const code = codeRaw.toUpperCase()
     if (code in contagem) contagem[code]++
     if (OT_CODES.has(code)) {
-      if (ehCemPorCento(ymd)) he100 += 2
+      // Viagem: domingo/feriado paga 8h a 100%; seg-sáb, 2h (50%).
+      if (ehCemPorCento(ymd)) he100 += 8
       else heNormal += 2
     }
   }
