@@ -1,12 +1,14 @@
 import { ABAS, COL_ORDER } from '../lib/board'
-import type { BoardItem } from '../lib/types'
+import type { BoardItem, Profile } from '../lib/types'
 import { ProcessCard } from './ProcessCard'
 
 export function Board({
   items,
+  profiles,
   onOpen,
 }: {
   items: BoardItem[]
+  profiles: Record<string, Profile>
   onOpen: (id: string) => void
 }) {
   return (
@@ -34,6 +36,7 @@ export function Board({
                     <ProcessCard
                       key={item.processo.id}
                       item={item}
+                      vendedor={item.deal.seller_id ? profiles[item.deal.seller_id]?.name ?? null : null}
                       onClick={() => onOpen(item.processo.id)}
                     />
                   ))

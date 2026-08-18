@@ -62,6 +62,7 @@ export interface Deal {
   valor: number | null
   stage: string
   parceiro: string | null
+  seller_id: string | null
 }
 
 // Parcela existente (tabela deal_installments) — reaproveitada no acompanhamento.

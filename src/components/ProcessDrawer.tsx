@@ -320,6 +320,15 @@ export function ProcessDrawer({ item, profiles, board, onClose }: Props) {
                 <b className="font-semibold text-text">{fmtDay(deal.data_mudanca)}</b>
               </span>
             </div>
+            <div className="flex items-center gap-2">
+              <Icon name="users" className="h-3.5 w-3.5 flex-none text-muted-2" />
+              <span>
+                Vendedor{' '}
+                <b className="font-semibold text-text">
+                  {(deal.seller_id && profiles[deal.seller_id]?.name) || '—'}
+                </b>
+              </span>
+            </div>
           </div>
           <div className="mt-4 flex items-center gap-2.5">
             <span

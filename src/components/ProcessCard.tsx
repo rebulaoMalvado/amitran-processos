@@ -64,7 +64,15 @@ function Indicators({ item }: { item: BoardItem }) {
   return <Pill good label="Concluído" />
 }
 
-export function ProcessCard({ item, onClick }: { item: BoardItem; onClick: () => void }) {
+export function ProcessCard({
+  item,
+  vendedor,
+  onClick,
+}: {
+  item: BoardItem
+  vendedor: string | null
+  onClick: () => void
+}) {
   const { deal, processo, installments } = item
   const st = ABAS[processo.status]
   const terceirizado = !!(deal.parceiro && deal.parceiro.trim())
@@ -113,6 +121,12 @@ export function ProcessCard({ item, onClick }: { item: BoardItem; onClick: () =>
           {fmtDay(deal.data_mudanca)}
         </span>
       </div>
+      {vendedor && (
+        <div className="mt-2 flex items-center gap-1.5 text-[11.5px] text-muted">
+          <Icon name="users" className="h-3 w-3 text-muted-2" />
+          Vendedor: <span className="font-medium text-text">{vendedor}</span>
+        </div>
+      )}
       <div className="mt-2.5 flex gap-1.5 border-t border-border pt-2.5">
         <Indicators item={item} />
       </div>

@@ -10,7 +10,7 @@ import type {
 } from './types'
 
 const DEAL_COLS =
-  'id, nome, telefone, origem, destino, data_mudanca, tipo_servico, valor, stage, parceiro'
+  'id, nome, telefone, origem, destino, data_mudanca, tipo_servico, valor, stage, parceiro, seller_id'
 const PROC_COLS = 'id, deal_id, status, campos, obs, log, created_at, updated_at'
 const INST_COLS =
   'id, deal_id, installment_number, amount, due_date, is_received, received_date, received_amount'

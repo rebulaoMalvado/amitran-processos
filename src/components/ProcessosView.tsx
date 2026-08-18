@@ -96,7 +96,7 @@ export function ProcessosView() {
         ) : (
           <>
             <Stats items={board.items} />
-            <Board items={sortedItems} onOpen={setSelectedId} />
+            <Board items={sortedItems} profiles={profiles} onOpen={setSelectedId} />
           </>
         )}
       </div>
