@@ -1,7 +1,7 @@
 import { ABAS } from '../lib/board'
 import { boolOn, fieldSatisfied, fieldValue } from '../lib/fields'
 import { brl, fmtDay } from '../lib/format'
-import { toYMD } from '../lib/prazos'
+import { addDays, toYMD } from '../lib/prazos'
 import type { BoardItem } from '../lib/types'
 import { Icon } from './Icon'
 import { isLate } from './Stats'
@@ -85,6 +85,8 @@ export function ProcessCard({
   const late = processo.status === 'acompanhamento' && installments.some(isLate)
   const ativo = processo.status !== 'recebido'
   const mudancaHoje = ativo && !!deal.data_mudanca && deal.data_mudanca === toYMD(new Date())
+  const mudancaAmanha =
+    ativo && !!deal.data_mudanca && deal.data_mudanca === addDays(toYMD(new Date()), 1)
   const diasParado = diasSem(processo.updated_at)
   const parado = ativo && diasParado >= 2
 
@@ -144,6 +146,12 @@ export function ProcessCard({
         <div className="mt-2.5 flex items-center gap-1.5 rounded-[9px] border border-[#CFE0F5] bg-primary-weak px-2 py-2 text-[11px] font-semibold leading-snug text-primary">
           <Icon name="calendar" className="h-[13px] w-[13px] flex-none" />
           <span>A mudança é hoje!</span>
+        </div>
+      )}
+      {mudancaAmanha && (
+        <div className="mt-2.5 flex items-center gap-1.5 rounded-[9px] border border-border-2 bg-[#F3F5F8] px-2 py-2 text-[11px] font-medium leading-snug text-muted">
+          <Icon name="calendar" className="h-[13px] w-[13px] flex-none text-primary" />
+          <span>A mudança é amanhã.</span>
         </div>
       )}
       {parado && (
