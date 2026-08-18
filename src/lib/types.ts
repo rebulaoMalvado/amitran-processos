@@ -155,6 +155,25 @@ export interface Manutencao {
   updated_at: string
 }
 
+// Colaborador (Departamento Pessoal).
+export interface Colaborador {
+  id: string
+  codigo: string | null
+  nome: string
+  apelido: string | null
+  funcao: string | null
+  cbo: string | null
+  salario_base: number
+  admissao: string | null
+  plano_saude: number
+  alimentacao: number
+  vale_transporte: number
+  ativo: boolean
+  obs: string | null
+  created_at: string
+  updated_at: string
+}
+
 // Transação de extrato bancário importada (OFX).
 export interface ExtratoTransacao {
   id: string

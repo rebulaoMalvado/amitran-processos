@@ -10,6 +10,7 @@ export type AppView =
   | 'extrato'
   | 'manutencao'
   | 'folha'
+  | 'colaboradores'
 
 export function Sidebar({
   view,
@@ -53,6 +54,7 @@ export function Sidebar({
         Departamento Pessoal
       </div>
       <NavItem icon="users" label="Folha de Pagamento" active={view === 'folha'} onClick={() => onNavigate('folha')} />
+      <NavItem icon="users" label="Colaboradores" active={view === 'colaboradores'} onClick={() => onNavigate('colaboradores')} />
 
       <div className="px-2.5 pb-1.5 pt-3.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-2">
         Financeiro

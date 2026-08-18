@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
+import { ColaboradoresView } from './ColaboradoresView'
 import { ContasView } from './ContasView'
 import { ExtratoView } from './ExtratoView'
 import { ManutencaoView } from './ManutencaoView'
@@ -33,6 +34,7 @@ function AppShellInner() {
       {view === 'vencimentos' && <VencimentosView />}
       {view === 'extrato' && <ExtratoView />}
       {view === 'manutencao' && <ManutencaoView />}
+      {view === 'colaboradores' && <ColaboradoresView />}
       {view === 'folha' && (
         <Suspense
           fallback={
