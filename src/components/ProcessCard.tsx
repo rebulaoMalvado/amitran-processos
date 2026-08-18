@@ -1,9 +1,15 @@
 import { ABAS } from '../lib/board'
 import { boolOn, fieldSatisfied, fieldValue } from '../lib/fields'
 import { brl, fmtDay } from '../lib/format'
+import { toYMD } from '../lib/prazos'
 import type { BoardItem } from '../lib/types'
 import { Icon } from './Icon'
 import { isLate } from './Stats'
+
+// Dias inteiros desde a última atualização do processo.
+function diasSem(iso: string): number {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
+}
 
 function Pill({ good, label, icon }: { good: boolean; label: string; icon?: 'check' | 'x' | 'clock' | 'alert' }) {
   const ic = icon ?? (good ? 'check' : 'x')
@@ -77,6 +83,10 @@ export function ProcessCard({
   const st = ABAS[processo.status]
   const terceirizado = !!(deal.parceiro && deal.parceiro.trim())
   const late = processo.status === 'acompanhamento' && installments.some(isLate)
+  const ativo = processo.status !== 'recebido'
+  const mudancaHoje = ativo && !!deal.data_mudanca && deal.data_mudanca === toYMD(new Date())
+  const diasParado = diasSem(processo.updated_at)
+  const parado = ativo && diasParado >= 2
 
   return (
     <button
@@ -130,6 +140,18 @@ export function ProcessCard({
       <div className="mt-2.5 flex gap-1.5 border-t border-border pt-2.5">
         <Indicators item={item} />
       </div>
+      {mudancaHoje && (
+        <div className="mt-2.5 flex items-center gap-1.5 rounded-[9px] border border-[#CFE0F5] bg-primary-weak px-2 py-2 text-[11px] font-semibold leading-snug text-primary">
+          <Icon name="calendar" className="h-[13px] w-[13px] flex-none" />
+          <span>A mudança é hoje!</span>
+        </div>
+      )}
+      {parado && (
+        <div className="mt-2.5 flex items-start gap-1.5 rounded-[9px] border border-[#F6E0A6] bg-[#FEF6E3] px-2 py-2 text-[11px] font-medium leading-snug text-[#92610a]">
+          <Icon name="clock" className="mt-px h-[13px] w-[13px] flex-none" />
+          <span>Contrato parado há {diasParado} dias — revisar.</span>
+        </div>
+      )}
       {late && (
         <div className="mt-2.5 flex items-start gap-1.5 rounded-[9px] border border-[#F6D3D0] bg-[#FCEBEA] px-2 py-2 text-[11px] font-medium leading-snug text-[#b91c1c]">
           <Icon name="alert" className="mt-px h-[13px] w-[13px] flex-none" />
