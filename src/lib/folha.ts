@@ -155,17 +155,24 @@ export function calcOvertime(colab: FolhaColaborador): Overtime {
   let he100 = 0
   let diasBeneficio = 0
   const contagem: Record<string, number> = { SV: 0, CV: 0, V: 0, X: 0, FE: 0, FO: 0, AT: 0 }
+  // Se há folga (FO) no mês, o domingo/feriado de viagem é compensado -> 8h a 50%.
+  // Sem folga no mês -> 8h a 100%.
+  const temFolga = Object.values(colab.dias).some((c) => String(c).toUpperCase() === 'FO')
   for (const [ymd, codeRaw] of Object.entries(colab.dias)) {
     const code = codeRaw.toUpperCase()
     if (code in contagem) contagem[code]++
     const dow = new Date(ymd + 'T00:00:00').getDay() // 0=dom .. 6=sáb
     // VT/VR: dia normal de trabalho (X), seg a sex, sem viagem e sem feriado.
-    // ehCemPorCento cobre domingo+feriado; como dow já exclui domingo, aqui exclui feriado.
     if (code === 'X' && dow >= 1 && dow <= 5 && !ehCemPorCento(ymd)) diasBeneficio++
     if (OT_CODES.has(code)) {
-      // Viagem: domingo/feriado paga 8h a 100%; seg-sáb, 2h (50%).
-      if (ehCemPorCento(ymd)) he100 += 8
-      else heNormal += 2
+      if (ehCemPorCento(ymd)) {
+        // Domingo/feriado de viagem: 8h. 50% se houve folga no mês; senão 100%.
+        if (temFolga) heNormal += 8
+        else he100 += 8
+      } else {
+        // Segunda a sábado: 2h a 50%.
+        heNormal += 2
+      }
     }
   }
   return { heNormal, he100, contagem, diasBeneficio }

@@ -274,7 +274,8 @@ export function FolhaView() {
             </div>
 
             <div className="mt-3 space-y-1 text-[11.5px] text-muted-2">
-              <div>• <b>HE 50%</b> = (2h × dia útil de viagem + HE bege) × (salário÷220) × 1,5. <b>HE 100%</b> = 8h × domingo/feriado de viagem × (salário÷220) × 2.</div>
+              <div>• <b>HE 50%</b> = (2h × dia útil de viagem + <b>8h × domingo/feriado de viagem SE houve folga (FO) no mês</b> + HE bege) × (salário÷220) × 1,5.</div>
+              <div>• <b>HE 100%</b> = 8h × domingo/feriado de viagem <b>quando NÃO houve folga (FO) no mês</b> × (salário÷220) × 2.</div>
               <div>• <b>Reflexo DSR</b> = (total de HE ÷ dias úteis) × (domingos+feriados) — validado no holerite (Natanael: R$ 167,70). </div>
               <div>• <b>Ajuda alim. (VR)</b> = R$32 × dias "X" de <b>segunda a sexta, sem viagem e sem feriado</b>. <b>Diária</b> = R$100 × dias de viagem. Valores da convenção — confira com o contador e a gente calibra.</div>
             </div>
