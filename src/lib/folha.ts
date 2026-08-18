@@ -6,6 +6,71 @@ export interface FolhaColaborador {
   nome: string
   funcao: string
   dias: Record<string, string> // 'YYYY-MM-DD' -> sigla
+  bege?: number // horas extras do cartão de ponto normal (manual), somam nas HE 50%
+}
+
+// Valores da convenção / cálculo.
+export const DIARIA_VIAGEM = 100
+export const AJUDA_ALIMENTACAO = 32
+export const DIVISOR_HORA = 220
+
+// Dias úteis e (domingos+feriados) do mês — base do reflexo de DSR.
+export function mesInfo(mes: string): { diasNoMes: number; domFer: number; diasUteis: number } {
+  const [y, m] = mes.split('-').map(Number)
+  const diasNoMes = new Date(y, m, 0).getDate()
+  let domFer = 0
+  for (let d = 1; d <= diasNoMes; d++) {
+    const dt = new Date(y, m - 1, d)
+    const ymd = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    if (dt.getDay() === 0 || ehCemPorCento(ymd)) domFer++
+  }
+  return { diasNoMes, domFer, diasUteis: diasNoMes - domFer }
+}
+
+export interface LinhaFolha {
+  he50Horas: number
+  he100Horas: number
+  he50Reais: number
+  he100Reais: number
+  reflexoDsr: number
+  diaria: number
+  ajudaAlim: number
+  diasViagem: number
+  diasTrabalho: number
+  temSalario: boolean
+}
+
+// Cálculo completo de uma linha da folha (em R$), usando o salário do cadastro.
+export function calcLinha(
+  colab: FolhaColaborador,
+  salarioBase: number | null,
+  mes: string,
+): LinhaFolha {
+  const ot = calcOvertime(colab)
+  const bege = Number(colab.bege ?? 0)
+  const diasViagem = ot.contagem.SV + ot.contagem.CV + ot.contagem.V
+  const diasTrabalho = ot.contagem.X
+  const he50Horas = ot.heNormal + bege
+  const he100Horas = ot.he100
+  const temSalario = !!salarioBase && salarioBase > 0
+  const valorHora = temSalario ? salarioBase! / DIVISOR_HORA : 0
+  const he50Reais = he50Horas * valorHora * 1.5
+  const he100Reais = he100Horas * valorHora * 2
+  const totalHE = he50Reais + he100Reais
+  const { diasUteis, domFer } = mesInfo(mes)
+  const reflexoDsr = totalHE && diasUteis ? (totalHE / diasUteis) * domFer : 0
+  return {
+    he50Horas,
+    he100Horas,
+    he50Reais,
+    he100Reais,
+    reflexoDsr,
+    diaria: diasViagem * DIARIA_VIAGEM,
+    ajudaAlim: diasTrabalho * AJUDA_ALIMENTACAO,
+    diasViagem,
+    diasTrabalho,
+    temSalario,
+  }
 }
 
 export interface FolhaMes {
