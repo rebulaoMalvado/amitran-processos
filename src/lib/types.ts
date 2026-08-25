@@ -202,3 +202,41 @@ export interface ClaudeUpdate {
   payload: Record<string, unknown>
   created_at: string
 }
+
+// ---- Guarda-móveis (GM) ----
+export interface GmBox {
+  numero: number
+  ativo: boolean
+  observacao: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface GmLocacao {
+  id: string
+  box_numero: number
+  cliente_nome: string
+  volume_m3: number | null
+  valor_mensal: number | null
+  dia_vencimento: number | null
+  data_inicio: string | null
+  data_fim: string | null
+  ativo: boolean
+  obs: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface GmPagamento {
+  id: string
+  locacao_id: string
+  mes_referencia: string // 1º dia do mês (YYYY-MM-01)
+  valor: number
+  pago: boolean
+  data_pagamento: string | null
+  obs: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}

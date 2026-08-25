@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react'
 import { ColaboradoresView } from './ColaboradoresView'
 import { ContasView } from './ContasView'
 import { ExtratoView } from './ExtratoView'
+import { GuardaMoveisView } from './GuardaMoveisView'
 import { ManutencaoView } from './ManutencaoView'
 
 // Carregada sob demanda (traz o parser de xlsx, que é pesado).
@@ -30,6 +31,7 @@ function AppShellInner() {
       </div>
       {view === 'mural' && <MuralView onNavigate={setView} />}
       {view === 'processos' && <ProcessosView />}
+      {view === 'guarda_moveis' && <GuardaMoveisView />}
       {view === 'contas' && <ContasView />}
       {view === 'vencimentos' && <VencimentosView />}
       {view === 'extrato' && <ExtratoView />}
