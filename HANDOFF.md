@@ -35,9 +35,12 @@ Todas com RLS `authenticated` (sem `anon`). Nada nas tabelas do CRM foi alterado
 - **`extrato_transacoes`** — extrato OFX (dedup por `acctid,fitid`), FK `conta_id` (conciliação).
 - **`folha_pagamento`** — `mes` único + `dados` jsonb (colaboradores × dias × sigla + `bege`).
 - **`colaboradores`** — cadastro (salário, função, plano saúde, alimentação, VT, apelido p/ casar com a folha de ponto). **12 colaboradores já cadastrados no banco** (do holerite de jul/26).
+- **`gm_boxes`** / **`gm_locacoes`** / **`gm_pagamentos`** — módulo Guarda-móveis (GM). Boxes 1..57 (`ativo`/`observacao`); locações (1 linha por cliente-no-box, `valor_mensal`/`dia_vencimento`/`data_fim`); pagamentos `unique(locacao_id, mes_referencia)`. Trigger `gm_set_updated_at`. **Seed de clientes aplicado só no banco** (repo público — nomes de clientes não versionados; backup do seed fora do repo). Migration versionada só cria estrutura + boxes.
 
 ## 4. Módulos (todos no ar)
-Sidebar: **Assistente** (Novidades da Vic) · **Operação** (Processos) · **Frota** (Manutenção) · **Departamento Pessoal** (Folha de Pagamento, Colaboradores) · **Financeiro** (Contas a pagar, Vencimentos, Extrato). Login fixo no rodapé.
+Sidebar: **Assistente** (Novidades da Vic) · **Operação** (Processos) · **Guarda-móveis** (GM) · **Frota** (Manutenção) · **Departamento Pessoal** (Folha de Pagamento, Colaboradores) · **Financeiro** (Contas a pagar, Vencimentos, Extrato). Login fixo no rodapé.
+
+- **Guarda-móveis / GM** (`GuardaMoveisView`/`GmBoxDrawer`, hook `useGuardaMoveis`, `lib/gm.ts`+`lib/gmStatus.ts`): mapa replicando a planta física (5 colunas + corredores no topo, "Sala", bloco inferior com **Entrada** na lateral, fileira 53–57, áreas não-locáveis). Cor do box = **pior status do mês** entre os clientes (verde pago · amarelo vence ≤5 dias · vermelho atrasado · cinza aberto · tracejado vago; box interno em ciano). Painel do box: marcar pago (valor editável) + desfazer, histórico por cliente, editar (volume/valor/dia/início), encerrar (`data_fim`), remover, adicionar cliente. Busca destaca boxes; seletor de mês. **Valores mensais e dias de vencimento em branco** — a preencher pelo financeiro.
 
 - **Processos** (`ProcessosView`/`ProcessDrawer`): board 4 abas (fechadas→faturamento→acompanhamento→recebido), materializa deals fechados, campos/travas/threads/log assinado. Drawer só da etapa atual + "ver etapas anteriores" + botão **Voltar** (regress). Faturamento tem campos condicionais (nº NF/CTE/DANFE) e "Enviado para Faturamento". Ordenação configurável.
   - ⚠️ Bug corrigido: persistência era intermitente (patch calculado dentro do updater do setState); agora usa `itemsRef`.
