@@ -6,11 +6,14 @@ import { SORT_OPTIONS, sortItems, type SortKey } from '../lib/sort'
 import type { Profile } from '../lib/types'
 import { Board } from './Board'
 import { Icon } from './Icon'
+import { MudancasCalendar } from './MudancasCalendar'
 import { ProcessDrawer } from './ProcessDrawer'
 import { Stats } from './Stats'
 import { useToast } from './Toast'
 
 const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
+
+type ViewMode = 'board' | 'calendario'
 
 export function ProcessosView() {
   const { session } = useAuth()
@@ -19,6 +22,7 @@ export function ProcessosView() {
   const [profiles, setProfiles] = useState<Record<string, Profile>>({})
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [sort, setSort] = useState<SortKey>('data_desc')
+  const [view, setView] = useState<ViewMode>('board')
 
   useEffect(() => {
     fetchProfiles()
@@ -52,20 +56,43 @@ export function ProcessosView() {
           </div>
         </div>
         <div className="flex-1" />
-        <label className="flex items-center gap-2 rounded-[9px] border border-border-2 bg-card px-2.5 py-2 text-[12.5px] text-muted">
-          <span className="hidden text-muted-2 sm:inline">Ordenar</span>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
-            className="cursor-pointer bg-transparent font-medium text-text outline-none"
+        <div className="flex overflow-hidden rounded-[9px] border border-border-2">
+          <button
+            onClick={() => setView('board')}
+            className={
+              'px-3 py-2 text-[12.5px] font-medium ' +
+              (view === 'board' ? 'bg-primary text-white' : 'bg-card text-muted')
+            }
           >
-            {SORT_OPTIONS.map((o) => (
-              <option key={o.key} value={o.key}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            Board
+          </button>
+          <button
+            onClick={() => setView('calendario')}
+            className={
+              'flex items-center gap-1.5 border-l border-border-2 px-3 py-2 text-[12.5px] font-medium ' +
+              (view === 'calendario' ? 'bg-primary text-white' : 'bg-card text-muted')
+            }
+          >
+            <Icon name="calendar" className="h-3.5 w-3.5" />
+            Calendário
+          </button>
+        </div>
+        {view === 'board' && (
+          <label className="flex items-center gap-2 rounded-[9px] border border-border-2 bg-card px-2.5 py-2 text-[12.5px] text-muted">
+            <span className="hidden text-muted-2 sm:inline">Ordenar</span>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="cursor-pointer bg-transparent font-medium text-text outline-none"
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <div
           className={
             'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium ' +
@@ -96,7 +123,17 @@ export function ProcessosView() {
         ) : (
           <>
             <Stats items={board.items} />
-            <Board items={sortedItems} profiles={profiles} onOpen={setSelectedId} />
+            {view === 'board' ? (
+              <Board items={sortedItems} profiles={profiles} onOpen={setSelectedId} />
+            ) : (
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <MudancasCalendar
+                  items={board.items}
+                  profiles={profiles}
+                  onOpen={setSelectedId}
+                />
+              </div>
+            )}
           </>
         )}
       </div>
