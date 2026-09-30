@@ -234,6 +234,7 @@ export interface GmPagamento {
   mes_referencia: string // 1º dia do mês (YYYY-MM-01)
   valor: number
   pago: boolean
+  isento: boolean
   data_pagamento: string | null
   obs: string | null
   created_by: string | null

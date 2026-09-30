@@ -26,6 +26,12 @@ export interface UseGuardaMoveis {
   editBox: (numero: number, patch: Partial<GmBox>) => Promise<void>
   marcarPago: (locacaoId: string, mesReferencia: string, valor: number) => Promise<void>
   desmarcarPago: (locacaoId: string, mesReferencia: string, valor: number) => Promise<void>
+  setStatusMes: (
+    locacaoId: string,
+    mesReferencia: string,
+    valor: number,
+    status: 'pago' | 'isento' | 'aberto',
+  ) => Promise<void>
 }
 
 export function useGuardaMoveis(
@@ -125,8 +131,15 @@ export function useGuardaMoveis(
     [onToast, reload],
   )
 
-  const applyPago = useCallback(
-    async (locacaoId: string, mesReferencia: string, valor: number, pago: boolean) => {
+  const applyStatus = useCallback(
+    async (
+      locacaoId: string,
+      mesReferencia: string,
+      valor: number,
+      status: 'pago' | 'isento' | 'aberto',
+    ) => {
+      const pago = status === 'pago'
+      const isento = status === 'isento'
       const hojeYMD = pago ? new Date().toISOString().slice(0, 10) : null
       // Otimista: reflete no estado local antes da resposta.
       setPagamentos((prev) => {
@@ -135,7 +148,7 @@ export function useGuardaMoveis(
         )
         if (idx >= 0) {
           const next = [...prev]
-          next[idx] = { ...next[idx], valor, pago, data_pagamento: hojeYMD }
+          next[idx] = { ...next[idx], valor, pago, isento, data_pagamento: hojeYMD }
           return next
         }
         return [
@@ -145,6 +158,7 @@ export function useGuardaMoveis(
             mes_referencia: mesReferencia,
             valor,
             pago,
+            isento,
             data_pagamento: hojeYMD,
             obs: null,
             created_by: currentUserId,
@@ -160,6 +174,7 @@ export function useGuardaMoveis(
           mes_referencia: mesReferencia,
           valor,
           pago,
+          isento,
           data_pagamento: hojeYMD,
           created_by: currentUserId,
         })
@@ -180,13 +195,22 @@ export function useGuardaMoveis(
 
   const marcarPago = useCallback(
     (locacaoId: string, mesReferencia: string, valor: number) =>
-      applyPago(locacaoId, mesReferencia, valor, true),
-    [applyPago],
+      applyStatus(locacaoId, mesReferencia, valor, 'pago'),
+    [applyStatus],
   )
   const desmarcarPago = useCallback(
     (locacaoId: string, mesReferencia: string, valor: number) =>
-      applyPago(locacaoId, mesReferencia, valor, false),
-    [applyPago],
+      applyStatus(locacaoId, mesReferencia, valor, 'aberto'),
+    [applyStatus],
+  )
+  const setStatusMes = useCallback(
+    (
+      locacaoId: string,
+      mesReferencia: string,
+      valor: number,
+      status: 'pago' | 'isento' | 'aberto',
+    ) => applyStatus(locacaoId, mesReferencia, valor, status),
+    [applyStatus],
   )
 
   return useMemo(
@@ -204,7 +228,8 @@ export function useGuardaMoveis(
       editBox,
       marcarPago,
       desmarcarPago,
+      setStatusMes,
     }),
-    [boxes, locacoes, pagamentos, loading, error, reload, addLocacao, editLocacao, encerrarLocacao, removeLocacao, editBox, marcarPago, desmarcarPago],
+    [boxes, locacoes, pagamentos, loading, error, reload, addLocacao, editLocacao, encerrarLocacao, removeLocacao, editBox, marcarPago, desmarcarPago, setStatusMes],
   )
 }

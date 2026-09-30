@@ -14,6 +14,7 @@ import type { GmLocacao, GmPagamento } from '../lib/types'
 import { Icon } from './Icon'
 import { useToast } from './Toast'
 import { GmBoxDrawer } from './GmBoxDrawer'
+import { GmCalendarView } from './GmCalendarView'
 
 // ---- Layout físico (fonte: planta / protótipo). cor => corredor DEPOIS da coluna.
 const TOP: { ids: number[]; cor?: boolean }[] = [
@@ -72,7 +73,9 @@ export function GuardaMoveisView() {
   const { boxes, locacoes, pagamentos, loading, error } = gm
 
   const hoje = useMemo(() => new Date(), [])
+  const [tab, setTab] = useState<'mapa' | 'calendario'>('mapa')
   const [cursor, setCursor] = useState(() => new Date(hoje.getFullYear(), hoje.getMonth(), 1))
+  const [anoCal, setAnoCal] = useState(() => hoje.getFullYear())
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<number | null>(null)
 
@@ -170,12 +173,25 @@ export function GuardaMoveisView() {
           </div>
         </div>
         <div className="flex-1" />
-        <MonthPicker
-          label={`${MESES[cursor.getMonth()]} ${cursor.getFullYear()}`}
-          onPrev={() => setCursor((c) => new Date(c.getFullYear(), c.getMonth() - 1, 1))}
-          onNext={() => setCursor((c) => new Date(c.getFullYear(), c.getMonth() + 1, 1))}
-          onToday={() => setCursor(new Date(hoje.getFullYear(), hoje.getMonth(), 1))}
-        />
+        <div className="flex items-center gap-0.5 rounded-[10px] border border-border-2 bg-card p-1">
+          <SegBtn label="Mapa" icon="grid" active={tab === 'mapa'} onClick={() => setTab('mapa')} />
+          <SegBtn label="Calendário" icon="calendar" active={tab === 'calendario'} onClick={() => setTab('calendario')} />
+        </div>
+        {tab === 'mapa' ? (
+          <MonthPicker
+            label={`${MESES[cursor.getMonth()]} ${cursor.getFullYear()}`}
+            onPrev={() => setCursor((c) => new Date(c.getFullYear(), c.getMonth() - 1, 1))}
+            onNext={() => setCursor((c) => new Date(c.getFullYear(), c.getMonth() + 1, 1))}
+            onToday={() => setCursor(new Date(hoje.getFullYear(), hoje.getMonth(), 1))}
+          />
+        ) : (
+          <MonthPicker
+            label={`${anoCal}`}
+            onPrev={() => setAnoCal((y) => y - 1)}
+            onNext={() => setAnoCal((y) => y + 1)}
+            onToday={() => setAnoCal(hoje.getFullYear())}
+          />
+        )}
         <div className="relative">
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-2">
             <Icon name="grid" className="h-[15px] w-[15px]" />
@@ -194,6 +210,17 @@ export function GuardaMoveisView() {
           <div className="rounded-xl border border-[#F6D3D0] bg-[#FCEBEA] p-4 text-[13px] text-[#b91c1c]">
             Erro ao carregar o guarda-móveis: {error}
           </div>
+        ) : tab === 'calendario' ? (
+          <GmCalendarView
+            boxes={boxes}
+            locacoes={locacoes}
+            pagamentos={pagamentos}
+            ano={anoCal}
+            hoje={hoje}
+            query={query}
+            onSetStatus={gm.setStatusMes}
+            onOpenBox={setSelected}
+          />
         ) : (
           <>
             <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -457,6 +484,31 @@ function MonthPicker({
         <Icon name="chevron" className="h-4 w-4" />
       </button>
     </div>
+  )
+}
+
+function SegBtn({
+  label,
+  icon,
+  active,
+  onClick,
+}: {
+  label: string
+  icon: 'grid' | 'calendar'
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-semibold transition-colors ' +
+        (active ? 'bg-primary-weak text-primary' : 'text-muted hover:bg-[#F3F5F8] hover:text-text')
+      }
+    >
+      <Icon name={icon} className="h-[15px] w-[15px]" />
+      {label}
+    </button>
   )
 }
 

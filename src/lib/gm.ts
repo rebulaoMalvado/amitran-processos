@@ -5,7 +5,7 @@ const BOX_COLS = 'numero, ativo, observacao, created_at, updated_at'
 const LOC_COLS =
   'id, box_numero, cliente_nome, volume_m3, valor_mensal, dia_vencimento, data_inicio, data_fim, ativo, obs, created_by, created_at, updated_at'
 const PAG_COLS =
-  'id, locacao_id, mes_referencia, valor, pago, data_pagamento, obs, created_by, created_at, updated_at'
+  'id, locacao_id, mes_referencia, valor, pago, isento, data_pagamento, obs, created_by, created_at, updated_at'
 
 export async function fetchBoxes(): Promise<GmBox[]> {
   const { data, error } = await supabase
@@ -72,6 +72,7 @@ export type PagamentoUpsert = {
   mes_referencia: string
   valor: number
   pago: boolean
+  isento: boolean
   data_pagamento: string | null
   created_by: string | null
 }
