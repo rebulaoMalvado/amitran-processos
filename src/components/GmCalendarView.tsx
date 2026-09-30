@@ -7,6 +7,9 @@ const MES_ABBR = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set',
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
+// Número compacto (sem "R$") para caber nas colunas estreitas dos meses.
+const fmtC = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
+
 // Estado de uma célula (locação × mês).
 type Cell = 'pago' | 'isento' | 'naopago' | 'aberto' | 'futuro' | 'na'
 
@@ -117,11 +120,13 @@ export function GmCalendarView({
     ? rows.filter((r) => r.kind === 'loc' && norm(r.loc.cliente_nome).includes(q))
     : rows
 
-  // Resumo do ano.
+  // Resumo do ano + totais por mês.
   const resumo = useMemo(() => {
     let pagos = 0
     let recebido = 0
     let previsto = 0
+    const recMes = new Array(12).fill(0)
+    const prevMes = new Array(12).fill(0)
     for (const r of rows) {
       if (r.kind !== 'loc') continue
       const mensal = Number(r.loc.valor_mensal ?? 0)
@@ -130,21 +135,34 @@ export function GmCalendarView({
         const st = cellState(r.loc, pag, ano, m, hoje)
         if (st === 'na' || st === 'isento') continue
         previsto += mensal
+        prevMes[m] += mensal
         if (st === 'pago') {
           pagos++
-          recebido += Number(pag?.valor ?? mensal)
+          const v = Number(pag?.valor ?? mensal)
+          recebido += v
+          recMes[m] += v
         }
       }
     }
-    return { pagos, recebido, previsto }
+    return { pagos, recebido, previsto, recMes, prevMes }
   }, [rows, pagByLocMes, ano, hoje])
+
+  // Mês corrente (só faz sentido destacar no ano atual).
+  const mesAtual = hoje.getMonth()
+  const anoAtual = ano === hoje.getFullYear()
+  const recebidoMes = anoAtual ? resumo.recMes[mesAtual] : 0
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Stat k="Recebido no ano" v={brl(resumo.recebido)} tone="green" />
-        <Stat k="Meses pagos" v={`${resumo.pagos}`} tone="blue" />
-        <Stat k="Previsto no ano" v={brl(resumo.previsto)} tone="slate" />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat
+          k={anoAtual ? `Recebido em ${MES_ABBR[mesAtual]}` : 'Recebido no mês'}
+          v={brl(recebidoMes)}
+          tone="green"
+        />
+        <Stat k="Recebido no ano" v={brl(resumo.recebido)} tone="blue" />
+        <Stat k="Meses pagos" v={`${resumo.pagos}`} tone="slate" />
+        <Stat k="Projeção anual" v={brl(resumo.previsto)} tone="slate" />
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-muted">
@@ -188,6 +206,38 @@ export function GmCalendarView({
               </tr>
             )}
           </tbody>
+          {!query && (
+            <tfoot>
+              <tr className="border-t-2 border-border bg-[#F0FAF2] text-[11.5px]">
+                <td className="sticky left-0 z-[5] bg-[#F0FAF2] px-3 py-2 text-center font-bold text-[#15803D]">
+                  Σ
+                </td>
+                <td className="px-3 py-2 font-semibold text-[#15803D]">Recebido no mês</td>
+                <td className="px-3 py-2 text-right font-bold tabular-nums text-[#15803D]">
+                  {brl(resumo.recebido)}
+                </td>
+                {resumo.recMes.map((v, m) => (
+                  <td key={m} className="px-1 py-2 text-center tabular-nums font-semibold text-[#15803D]">
+                    {v ? fmtC(v) : <span className="text-[#9BC6A8]">–</span>}
+                  </td>
+                ))}
+                <td className="px-3 py-2" />
+              </tr>
+              <tr className="border-t border-border bg-[#F8FAFC] text-[11.5px]">
+                <td className="sticky left-0 z-[5] bg-[#F8FAFC] px-3 py-2 text-center font-bold text-muted-2">
+                  Σ
+                </td>
+                <td className="px-3 py-2 font-medium text-muted">Previsto no mês</td>
+                <td className="px-3 py-2 text-right tabular-nums text-muted">{brl(resumo.previsto)}</td>
+                {resumo.prevMes.map((v, m) => (
+                  <td key={m} className="px-1 py-2 text-center tabular-nums text-muted">
+                    {v ? fmtC(v) : <span className="text-muted-2">–</span>}
+                  </td>
+                ))}
+                <td className="px-3 py-2" />
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 
