@@ -15,15 +15,14 @@ const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sáb
 
 type ViewMode = 'board' | 'calendario'
 
+type BoardApi = ReturnType<typeof useBoard>
+
+// Container: sessão, avisos, dados do board e perfis. A tela em si é `ProcessosTela`.
 export function ProcessosView({ onProgramar }: { onProgramar?: (dealId: string) => void }) {
   const { session } = useAuth()
   const toast = useToast()
   const board = useBoard(session?.user.id ?? null, toast)
   const [profiles, setProfiles] = useState<Record<string, Profile>>({})
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [sort, setSort] = useState<SortKey>('data_desc')
-  const [view, setView] = useState<ViewMode>('board')
-
   useEffect(() => {
     fetchProfiles()
       .then((list) => {
@@ -33,6 +32,22 @@ export function ProcessosView({ onProgramar }: { onProgramar?: (dealId: string) 
       })
       .catch((e) => console.error('Falha ao carregar profiles', e))
   }, [])
+
+  return <ProcessosTela board={board} profiles={profiles} onProgramar={onProgramar} />
+}
+
+export function ProcessosTela({
+  board,
+  profiles,
+  onProgramar,
+}: {
+  board: BoardApi
+  profiles: Record<string, Profile>
+  onProgramar?: (dealId: string) => void
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [sort, setSort] = useState<SortKey>('data_desc')
+  const [view, setView] = useState<ViewMode>('board')
 
   const abertos = board.items.filter((i) => i.processo.status !== 'recebido').length
   const day = new Date().getDay()
@@ -46,7 +61,7 @@ export function ProcessosView({ onProgramar }: { onProgramar?: (dealId: string) 
 
   return (
     <main className="flex min-w-0 flex-1 flex-col">
-      <header className="flex items-center gap-4 border-b border-border bg-bg px-6 py-4">
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border bg-bg px-6 py-3.5">
         <div>
           <div className="text-[19px] font-bold tracking-tight">Processos</div>
           <div className="mt-px text-[12.5px] text-muted">
@@ -56,7 +71,7 @@ export function ProcessosView({ onProgramar }: { onProgramar?: (dealId: string) 
           </div>
         </div>
         <div className="flex-1" />
-        <div className="flex overflow-hidden rounded-[9px] border border-border-2">
+        <div className="flex flex-none overflow-hidden rounded-[9px] border border-border-2">
           <button
             onClick={() => setView('board')}
             className={
@@ -115,7 +130,7 @@ export function ProcessosView({ onProgramar }: { onProgramar?: (dealId: string) 
         </button>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col px-6 pb-2 pt-5">
+      <div className="flex min-h-0 flex-1 flex-col px-6 pb-2 pt-4">
         {board.error ? (
           <div className="rounded-xl border border-[#F6D3D0] bg-[#FCEBEA] p-4 text-[13px] text-[#b91c1c]">
             Erro ao carregar o board: {board.error}

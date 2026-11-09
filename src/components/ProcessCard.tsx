@@ -93,21 +93,22 @@ export function ProcessCard({
   return (
     <button
       onClick={onClick}
-      className="relative w-full shrink-0 overflow-hidden rounded-[13px] border border-border bg-card p-3.5 text-left shadow-sm transition-all hover:-translate-y-px hover:border-border-2 hover:shadow-md"
+      className="relative w-full shrink-0 overflow-hidden rounded-[12px] border border-border bg-card p-3 text-left shadow-sm transition-all hover:-translate-y-px hover:border-border-2 hover:shadow-md"
     >
       <span className="absolute inset-y-0 left-0 w-[3px]" style={{ background: st.color }} />
-      <div className="mb-2 flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-[14.5px] font-semibold tracking-tight">
+      <div className="flex items-baseline gap-2">
+        <span className="min-w-0 flex-1 truncate text-[14px] font-semibold tracking-tight" title={deal.nome}>
           {deal.nome}
         </span>
+        <span className="flex-none text-[14px] font-bold tracking-tight">{brl(deal.valor)}</span>
       </div>
-      <div className="mb-2.5 flex items-center gap-1.5 text-[12.5px] text-muted">
+      <div className="mt-1 flex items-center gap-1.5 text-[12px] text-muted">
         <Icon name="map" className="h-[13px] w-[13px] flex-none text-muted-2" />
         <span className="truncate">{deal.origem || '—'}</span>
         <Icon name="arrow" className="h-[13px] w-[13px] flex-none text-muted-2" />
         <span className="truncate">{deal.destino || '—'}</span>
       </div>
-      <div className="mb-2.5 flex flex-wrap gap-1.5">
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {deal.tipo_servico && (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-[#F3F5F8] px-2 py-0.5 text-[10.5px] font-medium capitalize text-muted">
             <Icon name="box" className="h-3 w-3" />
@@ -115,53 +116,57 @@ export function ProcessCard({
           </span>
         )}
         <span
+          title={terceirizado ? `Terceiro · ${deal.parceiro}` : undefined}
           className={
-            'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10.5px] font-medium ' +
+            'inline-flex max-w-full items-start gap-1.5 rounded-[10px] border px-2 py-0.5 text-[10.5px] font-medium ' +
             (terceirizado
               ? 'border-[#F6E0A6] bg-[#FEF6E3] text-[#92610a]'
-              : 'border-border bg-[#F3F5F8] text-muted')
+              : 'rounded-full border-border bg-[#F3F5F8] text-muted')
           }
         >
-          <Icon name="truck" className="h-3 w-3" />
-          {terceirizado ? `Terceiro · ${deal.parceiro}` : 'Frota própria'}
+          <Icon name="truck" className="mt-px h-3 w-3 flex-none" />
+          <span className="line-clamp-2 min-w-0 break-words">
+            {terceirizado ? `Terceiro · ${deal.parceiro}` : 'Frota própria'}
+          </span>
         </span>
       </div>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[15px] font-bold tracking-tight">{brl(deal.valor)}</span>
-        <span className="text-[11.5px] text-muted-2">
+      <div className="mt-2 flex items-center justify-between gap-2 text-[11.5px]">
+        <span className="min-w-0 truncate text-muted">
+          {vendedor && (
+            <>
+              <Icon name="users" className="mr-1 inline h-3 w-3 align-[-1px] text-muted-2" />
+              <span className="font-medium text-text">{vendedor}</span>
+            </>
+          )}
+        </span>
+        <span className="flex-none text-muted-2">
           {processo.status === 'fechadas' ? 'prev. ' : 'exec. '}
           {fmtDay(deal.data_mudanca)}
         </span>
       </div>
-      {vendedor && (
-        <div className="mt-2 flex items-center gap-1.5 text-[11.5px] text-muted">
-          <Icon name="users" className="h-3 w-3 text-muted-2" />
-          Vendedor: <span className="font-medium text-text">{vendedor}</span>
-        </div>
-      )}
-      <div className="mt-2.5 flex gap-1.5 border-t border-border pt-2.5">
+      <div className="mt-2 flex flex-wrap gap-1.5 border-t border-border pt-2">
         <Indicators item={item} />
       </div>
       {mudancaHoje && (
-        <div className="mt-2.5 flex items-center gap-1.5 rounded-[9px] border border-[#CFE0F5] bg-primary-weak px-2 py-2 text-[11px] font-semibold leading-snug text-primary">
+        <div className="mt-2 flex items-center gap-1.5 rounded-[9px] border border-[#CFE0F5] bg-primary-weak px-2 py-1.5 text-[11px] font-semibold leading-snug text-primary">
           <Icon name="calendar" className="h-[13px] w-[13px] flex-none" />
           <span>A mudança é hoje!</span>
         </div>
       )}
       {mudancaAmanha && (
-        <div className="mt-2.5 flex items-center gap-1.5 rounded-[9px] border border-border-2 bg-[#F3F5F8] px-2 py-2 text-[11px] font-medium leading-snug text-muted">
+        <div className="mt-2 flex items-center gap-1.5 rounded-[9px] border border-border-2 bg-[#F3F5F8] px-2 py-1.5 text-[11px] font-medium leading-snug text-muted">
           <Icon name="calendar" className="h-[13px] w-[13px] flex-none text-primary" />
           <span>A mudança é amanhã.</span>
         </div>
       )}
       {parado && (
-        <div className="mt-2.5 flex items-start gap-1.5 rounded-[9px] border border-[#F6E0A6] bg-[#FEF6E3] px-2 py-2 text-[11px] font-medium leading-snug text-[#92610a]">
+        <div className="mt-2 flex items-start gap-1.5 rounded-[9px] border border-[#F6E0A6] bg-[#FEF6E3] px-2 py-1.5 text-[11px] font-medium leading-snug text-[#92610a]">
           <Icon name="clock" className="mt-px h-[13px] w-[13px] flex-none" />
           <span>Contrato parado há {diasParado} dias — revisar.</span>
         </div>
       )}
       {late && (
-        <div className="mt-2.5 flex items-start gap-1.5 rounded-[9px] border border-[#F6D3D0] bg-[#FCEBEA] px-2 py-2 text-[11px] font-medium leading-snug text-[#b91c1c]">
+        <div className="mt-2 flex items-start gap-1.5 rounded-[9px] border border-[#F6D3D0] bg-[#FCEBEA] px-2 py-1.5 text-[11px] font-medium leading-snug text-[#b91c1c]">
           <Icon name="alert" className="mt-px h-[13px] w-[13px] flex-none" />
           <span>Parcela vencida em aberto — verificar recebimento.</span>
         </div>

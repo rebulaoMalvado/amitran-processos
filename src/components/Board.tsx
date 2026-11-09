@@ -13,12 +13,15 @@ export function Board({
 }) {
   return (
     <div className="-mx-6 flex-1 overflow-x-auto px-6">
-      <div className="flex h-full min-w-min gap-3.5 pb-5">
+      <div
+        className="flex h-full w-full gap-3.5 pb-5"
+        style={{ minWidth: COL_ORDER.length * 232 + (COL_ORDER.length - 1) * 14 }}
+      >
         {COL_ORDER.map((key) => {
           const st = ABAS[key]
           const colItems = items.filter((i) => i.processo.status === key)
           return (
-            <div key={key} className="flex w-[296px] flex-none flex-col">
+            <div key={key} className="flex min-w-0 flex-1 basis-0 flex-col">
               <div className="flex items-center gap-2.5 px-1.5 pb-3 pt-0.5">
                 <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: st.color }} />
                 <span className="text-[13px] font-semibold tracking-tight">{st.label}</span>

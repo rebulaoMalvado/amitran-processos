@@ -51,26 +51,29 @@ export function Stats({ items }: { items: BoardItem[] }) {
   ]
 
   return (
-    <div className="mb-5 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+    <div className="mb-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
       {cards.map((c) => (
-        <div key={c.k} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[12.5px] font-medium text-muted">{c.k}</span>
-            <span
-              className="grid h-8 w-8 place-items-center rounded-[9px]"
-              style={{ background: c.bg, color: c.fg }}
-            >
-              <Icon name={c.ic} className="h-[17px] w-[17px]" />
-            </span>
-          </div>
-          <div
-            className="mt-2.5 text-[26px] font-bold tracking-tight"
-            style={c.alert ? { color: '#EF4444' } : undefined}
+        <div
+          key={c.k}
+          className="flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5 shadow-sm"
+        >
+          <span
+            className="grid h-9 w-9 flex-none place-items-center rounded-[10px]"
+            style={{ background: c.bg, color: c.fg }}
           >
-            {c.v}
-            {c.sub ? (
-              <small className="text-[12.5px] font-medium text-muted-2">{c.sub}</small>
-            ) : null}
+            <Icon name={c.ic} className="h-[18px] w-[18px]" />
+          </span>
+          <div className="min-w-0">
+            <div className="truncate text-[11.5px] font-medium text-muted">{c.k}</div>
+            <div
+              className="flex flex-wrap items-baseline gap-x-1.5 text-[20px] font-bold leading-tight tracking-tight"
+              style={c.alert ? { color: '#EF4444' } : undefined}
+            >
+              <span>{c.v}</span>
+              {c.sub ? (
+                <small className="whitespace-nowrap text-[12px] font-medium text-muted-2">{c.sub.replace(/^ · /, '')}</small>
+              ) : null}
+            </div>
           </div>
         </div>
       ))}
