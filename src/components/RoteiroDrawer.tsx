@@ -20,6 +20,7 @@ interface EtapaForm {
   data: string
   local: string
   usaVeiculo: boolean
+  semChapas: string[] // chapas (da lista comum) que NÃO vão nesta etapa
 }
 
 let uidSeq = 0
@@ -33,6 +34,7 @@ function diffDias(a: string, b: string): number {
 // Cria a mudança inteira de uma vez: o Gleison escolhe o cliente, o caminhão, a
 // equipe e a data de início; o sistema gera um dia para cada etapa (editáveis).
 export function RoteiroDrawer({
+  dealInicial = null,
   eventos,
   deals,
   caminhoes,
@@ -42,6 +44,7 @@ export function RoteiroDrawer({
   onClose,
   onSave,
 }: {
+  dealInicial?: DealProg | null // vindo do Processos: já abre preenchido
   eventos: Programacao[]
   deals: DealProg[]
   caminhoes: Caminhao[]
@@ -51,14 +54,21 @@ export function RoteiroDrawer({
   onClose: () => void
   onSave: (rows: Omit<NewProgramacao, 'created_by'>[]) => void
 }) {
-  const [dealId, setDealId] = useState<string | null>(null)
-  const [cliente, setCliente] = useState('')
-  const [executor, setExecutor] = useState<'frota' | 'terceiro'>('frota')
+  // O dia de início é a previsão da mudança lançada no Processos (se houver).
+  const inicioInicial = dealInicial?.data_mudanca || toYMD(new Date())
+  const [dealId, setDealId] = useState<string | null>(dealInicial?.id ?? null)
+  const [cliente, setCliente] = useState(dealInicial?.nome ?? '')
+  const [executor, setExecutor] = useState<'frota' | 'terceiro'>(
+    dealInicial?.parceiro?.trim() ? 'terceiro' : 'frota',
+  )
   const [caminhaoId, setCaminhaoId] = useState<string | null>(null)
   const [equipe, setEquipe] = useState<string[]>([])
-  const [inicio, setInicio] = useState(toYMD(new Date()))
-  const [roteiroKey, setRoteiroKey] = useState('viagem')
-  const [etapas, setEtapas] = useState<EtapaForm[]>(() => gerar('viagem', toYMD(new Date()), null))
+  // Chapas freelancer: entram em todas as etapas; dá para tirar de uma etapa específica.
+  const [chapas, setChapas] = useState<string[]>([])
+  const [inicio, setInicio] = useState(inicioInicial)
+  // Sem roteiro padrão: quem está programando escolhe (ou monta as etapas na mão).
+  const [roteiroKey, setRoteiroKey] = useState('')
+  const [etapas, setEtapas] = useState<EtapaForm[]>([])
   const [erro, setErro] = useState<string | null>(null)
 
   const deal = deals.find((d) => d.id === dealId) ?? null
@@ -71,6 +81,7 @@ export function RoteiroDrawer({
       data: addDays(ini, e.offset),
       local: localSugerido(e.tipo, d),
       usaVeiculo: e.tipo !== 'embalagem', // embalagem costuma ser só equipe
+      semChapas: [],
     }))
   }
 
@@ -114,9 +125,12 @@ export function RoteiroDrawer({
         data: ultima?.data ? addDays(ultima.data, 1) : inicio,
         local: '',
         usaVeiculo: true,
+        semChapas: [],
       },
     ])
   }
+
+  const chapasDe = (e: EtapaForm) => chapas.filter((n) => !e.semChapas.includes(n))
 
   function paraLinhas(): Omit<NewProgramacao, 'created_by'>[] {
     return etapas.map((e) => ({
@@ -129,6 +143,7 @@ export function RoteiroDrawer({
       terceiro: e.usaVeiculo && executor === 'terceiro',
       local: e.local.trim() || null,
       equipe,
+      freelancers: chapasDe(e),
       obs: null,
     }))
   }
@@ -148,6 +163,7 @@ export function RoteiroDrawer({
         terceiro: e.usaVeiculo && executor === 'terceiro',
         local: null,
         equipe,
+        freelancers: chapasDe(e),
         obs: null,
         created_by: null,
         created_at: '',
@@ -157,7 +173,7 @@ export function RoteiroDrawer({
     const out: string[] = []
     for (const d of drafts) for (const msg of m.get(d.id) ?? []) out.push(`${fmtDay(d.data)} · ${msg}`)
     return Array.from(new Set(out))
-  }, [etapas, eventos, dealId, cliente, executor, caminhaoId, equipe, labelCaminhao, labelPessoa])
+  }, [etapas, eventos, dealId, cliente, executor, caminhaoId, equipe, chapas, labelCaminhao, labelPessoa])
 
   function submit() {
     if (!cliente.trim()) return setErro('Informe a mudança (cliente).')
@@ -239,7 +255,13 @@ export function RoteiroDrawer({
           </Field>
 
           <Field label="Equipe (vale para todos os dias — ajuste um dia depois se mudar)">
-            <EquipePicker pessoas={pessoas} value={equipe} onChange={setEquipe} />
+            <EquipePicker
+              pessoas={pessoas}
+              value={equipe}
+              onChange={setEquipe}
+              freelancers={chapas}
+              onFreelancers={setChapas}
+            />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
@@ -248,6 +270,7 @@ export function RoteiroDrawer({
             </Field>
             <Field label="Roteiro">
               <select className={inputCls} value={roteiroKey} onChange={(e) => trocarRoteiro(e.target.value)}>
+                <option value="">— escolha o roteiro —</option>
                 {ROTEIROS.map((r) => (
                   <option key={r.key} value={r.key}>
                     {r.label}
@@ -318,9 +341,41 @@ export function RoteiroDrawer({
                       usa caminhão
                     </label>
                   </div>
+                  {chapas.length > 0 && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] text-muted-2">chapa neste dia:</span>
+                      {chapas.map((n) => {
+                        const on = !e.semChapas.includes(n)
+                        return (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() =>
+                              setEtapa(e.uid, {
+                                semChapas: on ? [...e.semChapas, n] : e.semChapas.filter((x) => x !== n),
+                              })
+                            }
+                            className={
+                              'rounded-full border border-dashed px-2 py-0.5 text-[11.5px] font-medium ' +
+                              (on
+                                ? 'border-[#F6E0A6] bg-[#FEF6E3] text-[#92610a]'
+                                : 'border-border-2 bg-white text-muted-2 line-through')
+                            }
+                          >
+                            {n}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )
             })}
+            {etapas.length === 0 && (
+              <div className="rounded-[10px] border border-dashed border-border-2 px-3 py-3 text-center text-[12.5px] text-muted-2">
+                Escolha um roteiro acima ou adicione as etapas uma a uma.
+              </div>
+            )}
             <button
               type="button"
               onClick={novaEtapa}
@@ -350,7 +405,9 @@ export function RoteiroDrawer({
             onClick={submit}
             className="flex-1 rounded-[9px] bg-primary py-2.5 text-[13.5px] font-semibold text-white shadow-sm hover:bg-primary-hover"
           >
-            Criar {etapas.length} {etapas.length === 1 ? 'dia' : 'dias'} na programação
+            {etapas.length === 0
+              ? 'Criar programação'
+              : `Criar ${etapas.length} ${etapas.length === 1 ? 'dia' : 'dias'} na programação`}
           </button>
         </div>
       </aside>

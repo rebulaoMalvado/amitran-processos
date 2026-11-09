@@ -15,6 +15,7 @@ interface Props {
   profiles: Record<string, Profile>
   board: BoardApi
   onClose: () => void
+  onProgramar?: () => void // leva para a Programação (logística) desta mudança
 }
 
 function Signature({ entry, profiles }: { entry?: FieldEntry; profiles: Record<string, Profile> }) {
@@ -75,7 +76,7 @@ function InstallmentsList({ installments }: { installments: Installment[] }) {
   )
 }
 
-export function ProcessDrawer({ item, profiles, board, onClose }: Props) {
+export function ProcessDrawer({ item, profiles, board, onClose, onProgramar }: Props) {
   const { deal, processo, installments } = item
   const id = processo.id
   const campos = processo.campos
@@ -330,6 +331,15 @@ export function ProcessDrawer({ item, profiles, board, onClose }: Props) {
               </span>
             </div>
           </div>
+          {onProgramar && processo.status !== 'recebido' && (
+            <button
+              onClick={onProgramar}
+              className="mt-3.5 flex items-center gap-1.5 rounded-[9px] border border-border-2 bg-card px-3 py-2 text-[12.5px] font-semibold text-primary hover:bg-primary-weak"
+            >
+              <Icon name="route" className="h-3.5 w-3.5" />
+              Programar na logística
+            </button>
+          )}
           <div className="mt-4 flex items-center gap-2.5">
             <span
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold text-white"

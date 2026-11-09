@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { fmtDay } from '../lib/format'
 import { addDays, toYMD } from '../lib/prazos'
-import { TIPOS } from '../lib/programacao'
+import { nomesEquipe, TIPOS } from '../lib/programacao'
 import type { Programacao } from '../lib/types'
 import { Icon } from './Icon'
 
@@ -11,7 +11,7 @@ export interface LinhaGrade {
   key: string
   titulo: string
   sub?: string
-  vazio?: string // texto quando a linha não tem nada na janela
+  freela?: string // linha de chapa freelancer: o nome (para criar atividade já com ele)
   match: (e: Programacao) => boolean
 }
 
@@ -164,9 +164,7 @@ function Chip({
   const cancelado = e.status === 'cancelado'
   const segunda =
     meta === 'equipe'
-      ? e.equipe.length > 0
-        ? e.equipe.map(labelPessoa).join(', ')
-        : ''
+      ? nomesEquipe(e, labelPessoa).join(', ')
       : e.terceiro
         ? 'Terceiro'
         : e.caminhao_id
@@ -175,7 +173,7 @@ function Chip({
   const tip = [
     `${t.label}${e.cliente ? ' · ' + e.cliente : ''}`,
     e.local,
-    e.equipe.length ? 'Equipe: ' + e.equipe.map(labelPessoa).join(', ') : null,
+    e.equipe.length + e.freelancers.length ? 'Equipe: ' + nomesEquipe(e, labelPessoa).join(', ') : null,
     e.obs,
     ...(conflito ?? []).map((c) => '⚠ ' + c),
   ]

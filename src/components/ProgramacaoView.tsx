@@ -1,15 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { nomeCaminhao, nomePessoa, useProgramacao } from '../hooks/useProgramacao'
 import { fmtDay } from '../lib/format'
 import { addDays, toYMD } from '../lib/prazos'
-import type { Programacao } from '../lib/types'
+import type { DealProg, Programacao } from '../lib/types'
 import { Icon } from './Icon'
 import { ProgramacaoDrawer } from './ProgramacaoDrawer'
 import { ProgramacaoGrid, type LinhaGrade } from './ProgramacaoGrid'
 import { ProgramacaoPorMudanca } from './ProgramacaoPorMudanca'
 import { RoteiroDrawer } from './RoteiroDrawer'
-import { TIPOS } from '../lib/programacao'
+import { grupoPessoa, GRUPO_LABEL, norm, TIPOS } from '../lib/programacao'
 import { useToast } from './Toast'
 
 type Aba = 'caminhoes' | 'equipe' | 'mudancas'
@@ -20,11 +20,17 @@ function segunda(ymd: string): string {
   return addDays(ymd, dow === 0 ? -6 : 1 - dow)
 }
 
-export function ProgramacaoView() {
+export function ProgramacaoView({
+  dealParaProgramar = null,
+  onDealConsumido,
+}: {
+  dealParaProgramar?: string | null // vindo do botão "Programar" do Processos
+  onDealConsumido?: () => void
+}) {
   const { session } = useAuth()
   const toast = useToast()
   const prog = useProgramacao(session?.user.id ?? null, toast)
-  const { eventos, caminhoes, pessoas, deals, conflitos, labelCaminhao, labelPessoa } = prog
+  const { eventos, caminhoes, pessoas, deals, aProgramar, conflitos, labelCaminhao, labelPessoa } = prog
 
   const [aba, setAba] = useState<Aba>('caminhoes')
   const [dias, setDias] = useState<7 | 14>(7)
@@ -32,7 +38,25 @@ export function ProgramacaoView() {
   const [drawer, setDrawer] = useState<
     { evento: Programacao | null; inicial?: Partial<Programacao> } | null
   >(null)
-  const [roteiro, setRoteiro] = useState(false)
+  // false = fechado; { deal } = aberto (deal null = em branco)
+  const [roteiro, setRoteiro] = useState<false | { deal: DealProg | null }>(false)
+  const [verTodas, setVerTodas] = useState(false)
+
+  // Chegou do Processos com um deal escolhido: abre o roteiro já preenchido
+  // (ou, se essa mudança já foi programada, vai direto para a linha do tempo dela).
+  useEffect(() => {
+    if (!dealParaProgramar || prog.loading) return
+    const d = deals.find((x) => x.id === dealParaProgramar)
+    if (d) {
+      if (aProgramar.some((x) => x.id === d.id)) setRoteiro({ deal: d })
+      else {
+        setAba('mudancas')
+        toast(`${d.nome} já tem programação — veja a linha do tempo.`)
+      }
+    }
+    onDealConsumido?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dealParaProgramar, prog.loading])
 
   const hoje = toYMD(new Date())
   const fim = addDays(inicio, dias - 1)
@@ -64,16 +88,37 @@ export function ProgramacaoView() {
     return l
   }, [caminhoes, eventos])
 
+  // Equipe: motoristas, ajudantes e, por último, um chapa por linha (só os que
+  // aparecem na janela exibida) — mais "Sem equipe definida".
   const linhasEquipe = useMemo<LinhaGrade[]>(() => {
     const l: LinhaGrade[] = pessoas.map((p) => ({
       key: p.id,
       titulo: nomePessoa(p),
-      sub: p.funcao ?? undefined,
+      sub: GRUPO_LABEL[grupoPessoa(p.funcao)].replace(/s$/, ''),
       match: (e) => e.equipe.includes(p.id),
     }))
-    l.push({ key: '__sem_equipe', titulo: 'Sem equipe definida', sub: 'definir quem vai', match: (e) => e.equipe.length === 0 })
+    const chapas = new Map<string, string>()
+    for (const e of eventos) {
+      if (e.data < inicio || e.data > fim) continue
+      for (const n of e.freelancers) if (!chapas.has(norm(n))) chapas.set(norm(n), n)
+    }
+    for (const [k, nome] of [...chapas].sort((a, b) => a[1].localeCompare(b[1]))) {
+      l.push({
+        key: 'f:' + k,
+        titulo: nome,
+        sub: 'chapa freelancer',
+        freela: nome,
+        match: (e) => e.freelancers.some((n) => norm(n) === k),
+      })
+    }
+    l.push({
+      key: '__sem_equipe',
+      titulo: 'Sem equipe definida',
+      sub: 'definir quem vai',
+      match: (e) => e.equipe.length === 0 && e.freelancers.length === 0,
+    })
     return l
-  }, [pessoas])
+  }, [pessoas, eventos, inicio, fim])
 
   // ---- resumo da janela ----
   const naJanela = useMemo(
@@ -100,6 +145,8 @@ export function ProgramacaoView() {
     if (aba === 'caminhoes') {
       if (linha.key === '__terceiro') inicial.terceiro = true
       else if (!linha.key.startsWith('__')) inicial.caminhao_id = linha.key
+    } else if (linha.freela) {
+      inicial.freelancers = [linha.freela]
     } else if (!linha.key.startsWith('__')) {
       inicial.equipe = [linha.key]
     }
@@ -116,6 +163,7 @@ export function ProgramacaoView() {
         caminhao_id: ultima.caminhao_id,
         terceiro: ultima.terceiro,
         equipe: ultima.equipe,
+        freelancers: ultima.freelancers,
         tipo: 'outro',
       },
     })
@@ -155,7 +203,7 @@ export function ProgramacaoView() {
           Atividade
         </button>
         <button
-          onClick={() => setRoteiro(true)}
+          onClick={() => setRoteiro({ deal: null })}
           className="flex items-center gap-1.5 rounded-[9px] bg-primary px-3.5 py-2.5 text-[13.5px] font-semibold text-white shadow-sm hover:bg-primary-hover"
         >
           <Icon name="route" className="h-4 w-4" />
@@ -173,6 +221,59 @@ export function ProgramacaoView() {
           </div>
         ) : (
           <>
+            {aProgramar.length > 0 && (
+              <section className="mb-4 rounded-xl border border-[#F6E0A6] bg-[#FEF6E3] p-3.5">
+                <div className="mb-2.5 flex items-center gap-2 text-[13px] font-semibold text-[#92610a]">
+                  <Icon name="alert" className="h-4 w-4" />
+                  {aProgramar.length} {aProgramar.length === 1 ? 'mudança fechada ainda sem programação' : 'mudanças fechadas ainda sem programação'}
+                  {aProgramar.length > 4 && (
+                    <button
+                      onClick={() => setVerTodas((v) => !v)}
+                      className="ml-auto text-[12px] font-medium text-[#92610a] underline"
+                    >
+                      {verTodas ? 'mostrar menos' : `ver todas (${aProgramar.length})`}
+                    </button>
+                  )}
+                </div>
+                <div className={verTodas ? 'flex flex-wrap gap-2' : 'flex gap-2 overflow-x-auto pb-1'}>
+                  {(verTodas ? aProgramar : aProgramar.slice(0, 8)).map((d) => {
+                    const passou = !!d.data_mudanca && d.data_mudanca < hoje
+                    return (
+                      <div
+                        key={d.id}
+                        className="flex w-[230px] flex-none flex-col rounded-[10px] border border-border bg-card p-3 shadow-sm"
+                      >
+                        <div className="truncate text-[13.5px] font-semibold">{d.nome}</div>
+                        <div className="mt-1 flex items-center gap-1.5 text-[11.5px] text-muted">
+                          <Icon name="map" className="h-3 w-3 flex-none text-muted-2" />
+                          <span className="truncate">{d.origem || '—'}</span>
+                          <Icon name="arrow" className="h-3 w-3 flex-none text-muted-2" />
+                          <span className="truncate">{d.destino || '—'}</span>
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+                          <span className={passou ? 'font-semibold text-[#b91c1c]' : 'text-muted-2'}>
+                            prev. {fmtDay(d.data_mudanca)}
+                            {passou ? ' (já passou)' : ''}
+                          </span>
+                          <span className="text-muted-2">·</span>
+                          <span className="truncate text-muted-2">
+                            {d.parceiro?.trim() ? `Terceiro · ${d.parceiro}` : 'Frota própria'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setRoteiro({ deal: d })}
+                          className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg bg-primary py-1.5 text-[12.5px] font-semibold text-white hover:bg-primary-hover"
+                        >
+                          <Icon name="route" className="h-3.5 w-3.5" />
+                          Programar
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
+
             {mostraGrade && (
               <>
                 <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -298,6 +399,8 @@ export function ProgramacaoView() {
 
       {roteiro && (
         <RoteiroDrawer
+          key={roteiro.deal?.id ?? 'novo'}
+          dealInicial={roteiro.deal}
           eventos={eventos}
           deals={deals}
           caminhoes={caminhoes}

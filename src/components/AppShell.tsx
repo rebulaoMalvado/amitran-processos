@@ -24,6 +24,8 @@ export function AppShell() {
 
 function AppShellInner() {
   const [view, setView] = useState<AppView>('processos')
+  // Deal escolhido no Processos para programar a logística.
+  const [dealProgramar, setDealProgramar] = useState<string | null>(null)
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
@@ -31,8 +33,17 @@ function AppShellInner() {
         <Sidebar view={view} onNavigate={setView} />
       </div>
       {view === 'mural' && <MuralView onNavigate={setView} />}
-      {view === 'processos' && <ProcessosView />}
-      {view === 'programacao' && <ProgramacaoView />}
+      {view === 'processos' && (
+        <ProcessosView
+          onProgramar={(id) => {
+            setDealProgramar(id)
+            setView('programacao')
+          }}
+        />
+      )}
+      {view === 'programacao' && (
+        <ProgramacaoView dealParaProgramar={dealProgramar} onDealConsumido={() => setDealProgramar(null)} />
+      )}
       {view === 'guarda_moveis' && <GuardaMoveisView />}
       {view === 'contas' && <ContasView />}
       {view === 'vencimentos' && <VencimentosView />}

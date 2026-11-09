@@ -15,7 +15,7 @@ const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sáb
 
 type ViewMode = 'board' | 'calendario'
 
-export function ProcessosView() {
+export function ProcessosView({ onProgramar }: { onProgramar?: (dealId: string) => void }) {
   const { session } = useAuth()
   const toast = useToast()
   const board = useBoard(session?.user.id ?? null, toast)
@@ -145,6 +145,7 @@ export function ProcessosView() {
           profiles={profiles}
           board={board}
           onClose={() => setSelectedId(null)}
+          onProgramar={onProgramar ? () => onProgramar(selected.deal.id) : undefined}
         />
       )}
     </main>

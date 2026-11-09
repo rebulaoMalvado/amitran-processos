@@ -3,7 +3,7 @@ import { addDays } from './prazos'
 import type { DealProg, ProgStatus, ProgTipo, Programacao } from './types'
 
 const COLS =
-  'id, data, tipo, status, deal_id, cliente, caminhao_id, terceiro, local, equipe, obs, created_by, created_at, updated_at'
+  'id, data, tipo, status, deal_id, cliente, caminhao_id, terceiro, local, equipe, freelancers, obs, created_by, created_at, updated_at'
 
 // ---------------------------------------------------------------------------
 // Tipos de atividade (cores seguem a paleta do app).
@@ -64,7 +64,6 @@ export const ROTEIROS: { key: string; label: string; etapas: Etapa[] }[] = [
       { tipo: 'entrega', offset: 1 },
     ],
   },
-  { key: 'vazio', label: 'Em branco (monto as etapas)', etapas: [] },
 ]
 
 // Sugestão de "local" por tipo, a partir do deal escolhido.
@@ -81,7 +80,7 @@ export function localSugerido(tipo: ProgTipo, deal: DealProg | null): string {
 // ---------------------------------------------------------------------------
 // Chave de agrupamento: eventos da MESMA mudança não conflitam entre si.
 // ---------------------------------------------------------------------------
-function norm(s: string): string {
+export function norm(s: string): string {
   return s
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
@@ -95,6 +94,45 @@ export function mudancaKey(p: Pick<Programacao, 'id' | 'deal_id' | 'cliente'>): 
   if (p.cliente && p.cliente.trim()) return 'c:' + norm(p.cliente)
   if (p.deal_id) return 'd:' + p.deal_id
   return 'e:' + p.id
+}
+
+// ---------------------------------------------------------------------------
+// Equipe: motoristas e ajudantes vêm do cadastro de colaboradores (pela função);
+// chapas freelancer são só um nome digitado em cada mudança.
+// ---------------------------------------------------------------------------
+export type GrupoPessoa = 'motorista' | 'ajudante' | 'outro'
+
+export const GRUPO_LABEL: Record<GrupoPessoa, string> = {
+  motorista: 'Motoristas',
+  ajudante: 'Ajudantes',
+  outro: 'Outros',
+}
+
+export function grupoPessoa(funcao: string | null | undefined): GrupoPessoa {
+  const f = norm(funcao ?? '')
+  if (f.includes('motorista')) return 'motorista'
+  if (f.includes('ajudante')) return 'ajudante'
+  return 'outro'
+}
+
+// Acrescenta um chapa (sem repetir o mesmo nome, ignorando acento/caixa).
+export function addChapa(lista: string[], nome: string): string[] {
+  const n = nome.trim().replace(/\s+/g, ' ')
+  if (!n || lista.some((x) => norm(x) === norm(n))) return lista
+  return [...lista, n]
+}
+
+// Nomes de quem vai (equipe + chapas) para exibir numa etiqueta.
+export function nomesEquipe(
+  e: Pick<Programacao, 'equipe' | 'freelancers'>,
+  labelPessoa: (id: string) => string,
+): string[] {
+  return [...e.equipe.map(labelPessoa), ...e.freelancers.map((n) => `${n} (chapa)`)]
+}
+
+// Chave de um cliente do CRM (mesma regra das etapas já programadas).
+export function chaveCliente(nome: string): string {
+  return 'c:' + norm(nome)
 }
 
 // ---------------------------------------------------------------------------
@@ -138,6 +176,21 @@ export function detectarConflitos(
     }
   }
 
+  // Chapa freelancer × dia (pelo nome)
+  const porChapa = new Map<string, { nome: string; lista: Programacao[] }>()
+  for (const e of ativos) {
+    for (const n of e.freelancers) {
+      const k = norm(n) + '|' + e.data
+      const cur = porChapa.get(k) ?? { nome: n, lista: [] }
+      cur.lista.push(e)
+      porChapa.set(k, cur)
+    }
+  }
+  for (const { nome, lista } of porChapa.values()) {
+    if (lista.length < 2 || new Set(lista.map(mudancaKey)).size < 2) continue
+    for (const e of lista) add(e.id, `${nome} (chapa) está escalado(a) em mais de uma mudança neste dia.`)
+  }
+
   // Pessoa × dia
   const porPessoa = new Map<string, Programacao[]>()
   for (const e of ativos) {
@@ -179,6 +232,13 @@ export async function fetchDealsProg(): Promise<DealProg[]> {
     .order('data_mudanca', { ascending: false })
   if (error) throw error
   return (data as DealProg[]) ?? []
+}
+
+// Deals cujo processo ainda está em "Mudanças Fechadas" (candidatos a programar).
+export async function fetchDealIdsFechadas(): Promise<string[]> {
+  const { data, error } = await supabase.from('processos').select('deal_id').eq('status', 'fechadas')
+  if (error) throw error
+  return ((data as { deal_id: string }[]) ?? []).map((r) => r.deal_id)
 }
 
 export type NewProgramacao = Omit<Programacao, 'id' | 'created_at' | 'updated_at'>

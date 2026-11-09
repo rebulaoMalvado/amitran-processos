@@ -1,7 +1,10 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { nomeCaminhao, nomePessoa } from '../hooks/useProgramacao'
 import {
+  addChapa,
   detectarConflitos,
+  GRUPO_LABEL,
+  grupoPessoa,
   localSugerido,
   STATUS_LABEL,
   TIPOS,
@@ -24,38 +27,114 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   )
 }
 
-// Seletor de equipe (chips clicáveis). Compartilhado com o drawer de roteiro.
+// Seletor de equipe: motoristas e ajudantes (do cadastro) + chapas freelancer
+// (só o nome, digitado). Compartilhado com o drawer de roteiro.
 export function EquipePicker({
   pessoas,
   value,
   onChange,
+  freelancers,
+  onFreelancers,
 }: {
   pessoas: Colaborador[]
   value: string[]
   onChange: (v: string[]) => void
+  freelancers: string[]
+  onFreelancers: (v: string[]) => void
 }) {
-  if (pessoas.length === 0)
-    return <div className="text-[12px] text-muted-2">Nenhum colaborador ativo cadastrado.</div>
+  const [nome, setNome] = useState('')
+  const grupos = (['motorista', 'ajudante'] as const).map((g) => ({
+    g,
+    lista: pessoas.filter((p) => grupoPessoa(p.funcao) === g),
+  }))
+
+  function addChapaAgora() {
+    const novo = addChapa(freelancers, nome)
+    if (novo !== freelancers) onFreelancers(novo)
+    setNome('')
+  }
+
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {pessoas.map((p) => {
-        const on = value.includes(p.id)
-        return (
+    <div className="flex flex-col gap-2.5">
+      {grupos.map(({ g, lista }) => (
+        <div key={g}>
+          <div className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-2">
+            {GRUPO_LABEL[g]}
+          </div>
+          {lista.length === 0 ? (
+            <div className="text-[12px] text-muted-2">Nenhum cadastrado.</div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {lista.map((p) => {
+                const on = value.includes(p.id)
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => onChange(on ? value.filter((x) => x !== p.id) : [...value, p.id])}
+                    className={
+                      'rounded-full border px-2.5 py-1 text-[12px] font-medium ' +
+                      (on
+                        ? 'border-primary bg-primary-weak text-primary'
+                        : 'border-border-2 text-muted hover:bg-[#F3F5F8]')
+                    }
+                  >
+                    {nomePessoa(p)}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      ))}
+
+      <div>
+        <div className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-2">
+          Chapa freelancer
+        </div>
+        {freelancers.length > 0 && (
+          <div className="mb-1.5 flex flex-wrap gap-1.5">
+            {freelancers.map((n) => (
+              <span
+                key={n}
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-[#F6E0A6] bg-[#FEF6E3] py-1 pl-2.5 pr-1.5 text-[12px] font-medium text-[#92610a]"
+              >
+                {n}
+                <button
+                  type="button"
+                  onClick={() => onFreelancers(freelancers.filter((x) => x !== n))}
+                  title="Remover chapa"
+                  className="grid h-4 w-4 place-items-center rounded-full hover:bg-[#F6E0A6]"
+                >
+                  <Icon name="x" className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-1.5">
+          <input
+            className={inputCls + ' !py-1.5'}
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                addChapaAgora()
+              }
+            }}
+            placeholder="Nome do chapa (ex: José)"
+          />
           <button
-            key={p.id}
             type="button"
-            onClick={() => onChange(on ? value.filter((x) => x !== p.id) : [...value, p.id])}
-            className={
-              'rounded-full border px-2.5 py-1 text-[12px] font-medium ' +
-              (on
-                ? 'border-primary bg-primary-weak text-primary'
-                : 'border-border-2 text-muted hover:bg-[#F3F5F8]')
-            }
+            onClick={addChapaAgora}
+            disabled={!nome.trim()}
+            className="flex-none rounded-[9px] border border-border-2 bg-card px-3 text-[12.5px] font-semibold text-muted hover:bg-[#F3F5F8] disabled:opacity-50"
           >
-            {nomePessoa(p)}
+            Adicionar
           </button>
-        )
-      })}
+        </div>
+      </div>
     </div>
   )
 }
@@ -113,6 +192,7 @@ export function ProgramacaoDrawer({
   const [caminhaoId, setCaminhaoId] = useState<string | null>(base.caminhao_id ?? null)
   const [local, setLocal] = useState(base.local ?? '')
   const [equipe, setEquipe] = useState<string[]>(base.equipe ?? [])
+  const [freelancers, setFreelancers] = useState<string[]>(base.freelancers ?? [])
   const [obs, setObs] = useState(base.obs ?? '')
   const [erro, setErro] = useState<string | null>(null)
   const [confirmaExcluir, setConfirmaExcluir] = useState(false)
@@ -148,6 +228,7 @@ export function ProgramacaoDrawer({
     terceiro: executor === 'terceiro',
     local: local.trim() || null,
     equipe,
+    freelancers,
     obs: obs.trim() || null,
     created_by: null,
     created_at: '',
@@ -158,7 +239,7 @@ export function ProgramacaoDrawer({
     const todos = [...eventos.filter((e) => e.id !== draft.id), draft]
     return detectarConflitos(todos, labelCaminhao, labelPessoa).get(draft.id) ?? []
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventos, data, tipo, status, dealId, cliente, executor, caminhaoId, equipe])
+  }, [eventos, data, tipo, status, dealId, cliente, executor, caminhaoId, equipe, freelancers])
 
   function submit() {
     if (!data) return setErro('Informe o dia.')
@@ -176,6 +257,7 @@ export function ProgramacaoDrawer({
       terceiro: draft.terceiro,
       local: draft.local,
       equipe: draft.equipe,
+      freelancers: draft.freelancers,
       obs: draft.obs,
     })
   }
@@ -314,7 +396,13 @@ export function ProgramacaoDrawer({
           </Field>
 
           <Field label="Equipe">
-            <EquipePicker pessoas={pessoas} value={equipe} onChange={setEquipe} />
+            <EquipePicker
+              pessoas={pessoas}
+              value={equipe}
+              onChange={setEquipe}
+              freelancers={freelancers}
+              onFreelancers={setFreelancers}
+            />
           </Field>
 
           <Field label="Observação">

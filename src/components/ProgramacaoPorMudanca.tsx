@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { fmtDay } from '../lib/format'
 import { toYMD } from '../lib/prazos'
-import { mudancaKey, TIPOS } from '../lib/programacao'
+import { mudancaKey, nomesEquipe, TIPOS } from '../lib/programacao'
 import type { Programacao } from '../lib/types'
 import { Icon } from './Icon'
 
@@ -151,10 +151,10 @@ export function ProgramacaoPorMudanca({
                           {e.terceiro ? 'Terceiro' : e.caminhao_id ? labelCaminhao(e.caminhao_id) : '—'}
                         </span>
                       </div>
-                      {e.equipe.length > 0 && (
+                      {e.equipe.length + e.freelancers.length > 0 && (
                         <div className="mt-0.5 flex items-center gap-1 text-[10.5px] opacity-80">
                           <Icon name="users" className="h-3 w-3 flex-none" />
-                          <span className="truncate">{e.equipe.map(labelPessoa).join(', ')}</span>
+                          <span className="truncate">{nomesEquipe(e, labelPessoa).join(', ')}</span>
                         </div>
                       )}
                     </button>

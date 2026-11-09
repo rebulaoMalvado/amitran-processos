@@ -266,6 +266,7 @@ export interface Programacao {
   terceiro: boolean
   local: string | null
   equipe: string[] // ids de colaboradores
+  freelancers: string[] // chapas freelancer (só o nome, digitado)
   obs: string | null
   created_by: string | null
   created_at: string

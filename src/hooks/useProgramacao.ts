@@ -4,8 +4,12 @@ import { fetchColaboradores } from '../lib/colaboradores'
 import {
   deleteProgramacao,
   detectarConflitos,
+  chaveCliente,
+  fetchDealIdsFechadas,
   fetchDealsProg,
+  mudancaKey,
   fetchProgramacao,
+  grupoPessoa,
   insertProgramacao,
   updateProgramacao,
   type NewProgramacao,
@@ -25,6 +29,7 @@ export interface UseProgramacao {
   caminhoes: Caminhao[] // só ativos
   pessoas: Colaborador[] // só ativos
   deals: DealProg[]
+  aProgramar: DealProg[] // fechadas no Processos e ainda sem nenhuma programação
   conflitos: Map<string, string[]>
   labelCaminhao: (id: string) => string
   labelPessoa: (id: string) => string
@@ -46,19 +51,37 @@ export function useProgramacao(
   const [todasPessoas, setTodasPessoas] = useState<Colaborador[]>([])
   const [todosCaminhoes, setTodosCaminhoes] = useState<Caminhao[]>([])
   const [deals, setDeals] = useState<DealProg[]>([])
+  const [fechadas, setFechadas] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const reload = useCallback(() => {
     setLoading(true)
-    Promise.all([fetchProgramacao(), fetchCaminhoes(), fetchColaboradores(), fetchDealsProg()])
-      .then(([p, c, col, d]) => {
+    Promise.all([
+      fetchProgramacao(),
+      fetchCaminhoes(),
+      fetchColaboradores(),
+      fetchDealsProg(),
+      fetchDealIdsFechadas(),
+    ])
+      .then(([p, c, col, d, f]) => {
         setEventos(p)
         setTodosCaminhoes(c)
         setCaminhoes(c.filter((x) => x.ativo))
         setTodasPessoas(col)
-        setPessoas(col.filter((x) => x.ativo))
+        // Só motoristas e ajudantes entram na escala (motoristas primeiro).
+        const ordem = { motorista: 0, ajudante: 1, outro: 2 } as const
+        setPessoas(
+          col
+            .filter((x) => x.ativo && grupoPessoa(x.funcao) !== 'outro')
+            .sort(
+              (a, b) =>
+                ordem[grupoPessoa(a.funcao)] - ordem[grupoPessoa(b.funcao)] ||
+                nomePessoa(a).localeCompare(nomePessoa(b)),
+            ),
+        )
         setDeals(d)
+        setFechadas(new Set(f))
         setError(null)
       })
       .catch((e) => setError(e.message ?? String(e)))
@@ -87,6 +110,19 @@ export function useProgramacao(
     () => detectarConflitos(eventos, labelCaminhao, labelPessoa),
     [eventos, labelCaminhao, labelPessoa],
   )
+
+  // Mudanças fechadas que ainda não têm nenhuma atividade ativa programada.
+  const aProgramar = useMemo(() => {
+    const programadas = new Set<string>()
+    for (const e of eventos) {
+      if (e.status === 'cancelado') continue
+      programadas.add(mudancaKey(e))
+      if (e.deal_id) programadas.add('d:' + e.deal_id)
+    }
+    return deals
+      .filter((d) => fechadas.has(d.id) && !programadas.has(chaveCliente(d.nome)) && !programadas.has('d:' + d.id))
+      .sort((a, b) => (a.data_mudanca ?? '9999').localeCompare(b.data_mudanca ?? '9999'))
+  }, [deals, fechadas, eventos])
 
   const add = useCallback(
     async (rows: Omit<NewProgramacao, 'created_by'>[]) => {
@@ -148,6 +184,7 @@ export function useProgramacao(
       caminhoes,
       pessoas,
       deals,
+      aProgramar,
       conflitos,
       labelCaminhao,
       labelPessoa,
@@ -158,6 +195,6 @@ export function useProgramacao(
       edit,
       remove,
     }),
-    [eventos, caminhoes, pessoas, deals, conflitos, labelCaminhao, labelPessoa, loading, error, reload, add, edit, remove],
+    [eventos, caminhoes, pessoas, deals, aProgramar, conflitos, labelCaminhao, labelPessoa, loading, error, reload, add, edit, remove],
   )
 }
