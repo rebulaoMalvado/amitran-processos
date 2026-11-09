@@ -48,6 +48,7 @@ export async function fetchDealOptions(): Promise<DealOption[]> {
     .from('deals')
     .select('id, nome, valor, data_mudanca')
     .eq('stage', 'fechado')
+    .is('deleted_at', null) // ignora deals excluídos no CRM
     .order('data_mudanca', { ascending: false })
   if (error) throw error
   return (data as DealOption[]) ?? []

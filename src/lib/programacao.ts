@@ -229,6 +229,7 @@ export async function fetchDealsProg(): Promise<DealProg[]> {
     .from('deals')
     .select('id, nome, origem, destino, parceiro, data_mudanca')
     .eq('stage', 'fechado')
+    .is('deleted_at', null) // ignora deals excluídos no CRM
     .order('data_mudanca', { ascending: false })
   if (error) throw error
   return (data as DealProg[]) ?? []

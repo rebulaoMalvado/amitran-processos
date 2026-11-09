@@ -40,6 +40,7 @@ export async function loadBoard(): Promise<BoardItem[]> {
     .from('deals')
     .select(DEAL_COLS)
     .eq('stage', 'fechado')
+    .is('deleted_at', null) // o CRM exclui "de mentira" (soft delete): ignora os excluídos
   if (dErr) throw dErr
   const deals = (dealsData as Deal[]) ?? []
   if (!deals.length) return []
