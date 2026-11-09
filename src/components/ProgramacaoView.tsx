@@ -61,6 +61,13 @@ export function ProgramacaoView({
   const hoje = toYMD(new Date())
   const fim = addDays(inicio, dias - 1)
 
+  // Faixa "sem programação": só o que ainda vai acontecer (previsão de hoje em diante
+  // ou sem data). O que já passou não entra — não há o que programar.
+  const pendentes = useMemo(
+    () => aProgramar.filter((d) => !d.data_mudanca || d.data_mudanca >= hoje),
+    [aProgramar, hoje],
+  )
+
   // ---- linhas da grade ----
   const linhasCaminhao = useMemo<LinhaGrade[]>(() => {
     const ativos = new Set(caminhoes.map((c) => c.id))
@@ -221,23 +228,22 @@ export function ProgramacaoView({
           </div>
         ) : (
           <>
-            {aProgramar.length > 0 && (
+            {pendentes.length > 0 && (
               <section className="mb-4 rounded-xl border border-[#F6E0A6] bg-[#FEF6E3] p-3.5">
                 <div className="mb-2.5 flex items-center gap-2 text-[13px] font-semibold text-[#92610a]">
                   <Icon name="alert" className="h-4 w-4" />
-                  {aProgramar.length} {aProgramar.length === 1 ? 'mudança fechada ainda sem programação' : 'mudanças fechadas ainda sem programação'}
-                  {aProgramar.length > 4 && (
+                  {pendentes.length} {pendentes.length === 1 ? 'mudança fechada ainda sem programação' : 'mudanças fechadas ainda sem programação'}
+                  {pendentes.length > 4 && (
                     <button
                       onClick={() => setVerTodas((v) => !v)}
                       className="ml-auto text-[12px] font-medium text-[#92610a] underline"
                     >
-                      {verTodas ? 'mostrar menos' : `ver todas (${aProgramar.length})`}
+                      {verTodas ? 'mostrar menos' : `ver todas (${pendentes.length})`}
                     </button>
                   )}
                 </div>
                 <div className={verTodas ? 'flex flex-wrap gap-2' : 'flex gap-2 overflow-x-auto pb-1'}>
-                  {(verTodas ? aProgramar : aProgramar.slice(0, 8)).map((d) => {
-                    const passou = !!d.data_mudanca && d.data_mudanca < hoje
+                  {(verTodas ? pendentes : pendentes.slice(0, 8)).map((d) => {
                     return (
                       <div
                         key={d.id}
@@ -251,10 +257,7 @@ export function ProgramacaoView({
                           <span className="truncate">{d.destino || '—'}</span>
                         </div>
                         <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
-                          <span className={passou ? 'font-semibold text-[#b91c1c]' : 'text-muted-2'}>
-                            prev. {fmtDay(d.data_mudanca)}
-                            {passou ? ' (já passou)' : ''}
-                          </span>
+                          <span className="text-muted-2">prev. {fmtDay(d.data_mudanca)}</span>
                           <span className="text-muted-2">·</span>
                           <span className="truncate text-muted-2">
                             {d.parceiro?.trim() ? `Terceiro · ${d.parceiro}` : 'Frota própria'}
