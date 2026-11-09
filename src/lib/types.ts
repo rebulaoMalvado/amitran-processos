@@ -241,3 +241,43 @@ export interface GmPagamento {
   created_at: string
   updated_at: string
 }
+
+// ---- Programação (logística) ----
+export type ProgTipo =
+  | 'embalagem'
+  | 'coleta'
+  | 'viagem'
+  | 'entrega'
+  | 'retorno'
+  | 'manutencao'
+  | 'outro'
+
+export type ProgStatus = 'previsto' | 'feito' | 'cancelado'
+
+// 1 linha = 1 atividade num dia ("dia 09 · viagem a SP").
+export interface Programacao {
+  id: string
+  data: string // YYYY-MM-DD
+  tipo: ProgTipo
+  status: ProgStatus
+  deal_id: string | null
+  cliente: string | null
+  caminhao_id: string | null
+  terceiro: boolean
+  local: string | null
+  equipe: string[] // ids de colaboradores
+  obs: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Deal fechado enxuto para o seletor de mudança.
+export interface DealProg {
+  id: string
+  nome: string
+  origem: string | null
+  destino: string | null
+  parceiro: string | null
+  data_mudanca: string | null
+}

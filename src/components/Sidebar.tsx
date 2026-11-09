@@ -5,6 +5,7 @@ import { Icon } from './Icon'
 export type AppView =
   | 'mural'
   | 'processos'
+  | 'programacao'
   | 'guarda_moveis'
   | 'contas'
   | 'vencimentos'
@@ -45,6 +46,7 @@ export function Sidebar({
         Operação
       </div>
       <NavItem icon="grid" label="Processos" active={view === 'processos'} onClick={() => onNavigate('processos')} />
+      <NavItem icon="route" label="Programação" active={view === 'programacao'} onClick={() => onNavigate('programacao')} />
 
       <div className="px-2.5 pb-1.5 pt-3.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-2">
         Guarda-móveis
@@ -100,7 +102,7 @@ function NavItem({
   active,
   onClick,
 }: {
-  icon: 'grid' | 'wallet' | 'calendar' | 'sparkles' | 'wrench' | 'bank' | 'users' | 'archive'
+  icon: 'grid' | 'route' | 'wallet' | 'calendar' | 'sparkles' | 'wrench' | 'bank' | 'users' | 'archive'
   label: string
   active: boolean
   onClick: () => void

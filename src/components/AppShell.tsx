@@ -9,6 +9,7 @@ import { ManutencaoView } from './ManutencaoView'
 const FolhaView = lazy(() => import('./FolhaView').then((m) => ({ default: m.FolhaView })))
 import { MuralView } from './MuralView'
 import { ProcessosView } from './ProcessosView'
+import { ProgramacaoView } from './ProgramacaoView'
 import { VencimentosView } from './VencimentosView'
 import { Sidebar, type AppView } from './Sidebar'
 import { ToastProvider } from './Toast'
@@ -31,6 +32,7 @@ function AppShellInner() {
       </div>
       {view === 'mural' && <MuralView onNavigate={setView} />}
       {view === 'processos' && <ProcessosView />}
+      {view === 'programacao' && <ProgramacaoView />}
       {view === 'guarda_moveis' && <GuardaMoveisView />}
       {view === 'contas' && <ContasView />}
       {view === 'vencimentos' && <VencimentosView />}
