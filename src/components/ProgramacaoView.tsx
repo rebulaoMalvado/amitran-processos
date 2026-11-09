@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
-import { nomeCaminhao, nomePessoa, useProgramacao } from '../hooks/useProgramacao'
+import { nomeCaminhao, nomePessoa, useProgramacao, type UseProgramacao } from '../hooks/useProgramacao'
 import { fmtDay } from '../lib/format'
 import { addDays, toYMD } from '../lib/prazos'
 import type { DealProg, Programacao } from '../lib/types'
@@ -20,16 +20,25 @@ function segunda(ymd: string): string {
   return addDays(ymd, dow === 0 ? -6 : 1 - dow)
 }
 
-export function ProgramacaoView({
-  dealParaProgramar = null,
-  onDealConsumido,
-}: {
+interface TelaProps {
   dealParaProgramar?: string | null // vindo do botão "Programar" do Processos
   onDealConsumido?: () => void
-}) {
+}
+
+// Container: dados (hook) + sessão + avisos. A tela em si é `ProgramacaoTela`.
+export function ProgramacaoView(props: TelaProps) {
   const { session } = useAuth()
   const toast = useToast()
   const prog = useProgramacao(session?.user.id ?? null, toast)
+  return <ProgramacaoTela prog={prog} toast={toast} {...props} />
+}
+
+export function ProgramacaoTela({
+  prog,
+  toast,
+  dealParaProgramar = null,
+  onDealConsumido,
+}: TelaProps & { prog: UseProgramacao; toast: (m: string) => void }) {
   const { eventos, caminhoes, pessoas, deals, aProgramar, conflitos, labelCaminhao, labelPessoa } = prog
 
   const [aba, setAba] = useState<Aba>('caminhoes')
@@ -41,6 +50,7 @@ export function ProgramacaoView({
   // false = fechado; { deal } = aberto (deal null = em branco)
   const [roteiro, setRoteiro] = useState<false | { deal: DealProg | null }>(false)
   const [verTodas, setVerTodas] = useState(false)
+  const [verConflitos, setVerConflitos] = useState(false)
 
   // Chegou do Processos com um deal escolhido: abre o roteiro já preenchido
   // (ou, se essa mudança já foi programada, vai direto para a linha do tempo dela).
@@ -218,7 +228,11 @@ export function ProgramacaoView({
         </button>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6 pt-5">
+      <div
+        className={
+          'flex min-h-0 flex-1 flex-col px-6 pb-4 pt-4 ' + (mostraGrade ? 'overflow-hidden' : 'overflow-y-auto')
+        }
+      >
         {prog.error ? (
           <div className="rounded-xl border border-[#F6D3D0] bg-[#FCEBEA] p-4 text-[13px] text-[#b91c1c]">
             Erro ao carregar a programação: {prog.error}
@@ -229,57 +243,58 @@ export function ProgramacaoView({
         ) : (
           <>
             {pendentes.length > 0 && (
-              <section className="mb-4 rounded-xl border border-[#F6E0A6] bg-[#FEF6E3] p-3.5">
-                <div className="mb-2.5 flex items-center gap-2 text-[13px] font-semibold text-[#92610a]">
-                  <Icon name="alert" className="h-4 w-4" />
-                  {pendentes.length} {pendentes.length === 1 ? 'mudança fechada ainda sem programação' : 'mudanças fechadas ainda sem programação'}
-                  {pendentes.length > 4 && (
-                    <button
-                      onClick={() => setVerTodas((v) => !v)}
-                      className="ml-auto text-[12px] font-medium text-[#92610a] underline"
-                    >
-                      {verTodas ? 'mostrar menos' : `ver todas (${pendentes.length})`}
-                    </button>
-                  )}
-                </div>
-                <div className={verTodas ? 'flex flex-wrap gap-2' : 'flex gap-2 overflow-x-auto pb-1'}>
-                  {(verTodas ? pendentes : pendentes.slice(0, 8)).map((d) => {
-                    return (
+              <section className="mb-3 flex-none rounded-lg border border-[#F6E0A6] bg-[#FEF6E3] px-3 py-2">
+                <div className="flex items-start gap-2.5">
+                  <div className="flex flex-none items-center gap-1.5 whitespace-nowrap pt-1 text-[12.5px] font-semibold text-[#92610a]">
+                    <Icon name="alert" className="h-4 w-4" />
+                    {pendentes.length} sem programação
+                  </div>
+                  <div
+                    className={
+                      'flex min-w-0 flex-1 gap-1.5 ' +
+                      (verTodas ? 'max-h-[120px] flex-wrap overflow-y-auto' : 'overflow-x-auto')
+                    }
+                  >
+                    {(verTodas ? pendentes : pendentes.slice(0, 12)).map((d) => (
                       <div
                         key={d.id}
-                        className="flex w-[230px] flex-none flex-col rounded-[10px] border border-border bg-card p-3 shadow-sm"
+                        title={`${d.origem || '—'} → ${d.destino || '—'}`}
+                        className="flex flex-none items-center gap-2 rounded-lg border border-border bg-card py-1 pl-2.5 pr-1 text-[12px] shadow-sm"
                       >
-                        <div className="truncate text-[13.5px] font-semibold">{d.nome}</div>
-                        <div className="mt-1 flex items-center gap-1.5 text-[11.5px] text-muted">
-                          <Icon name="map" className="h-3 w-3 flex-none text-muted-2" />
-                          <span className="truncate">{d.origem || '—'}</span>
-                          <Icon name="arrow" className="h-3 w-3 flex-none text-muted-2" />
-                          <span className="truncate">{d.destino || '—'}</span>
-                        </div>
-                        <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
-                          <span className="text-muted-2">prev. {fmtDay(d.data_mudanca)}</span>
-                          <span className="text-muted-2">·</span>
-                          <span className="truncate text-muted-2">
-                            {d.parceiro?.trim() ? `Terceiro · ${d.parceiro}` : 'Frota própria'}
+                        <span className="max-w-[160px] truncate font-semibold">{d.nome}</span>
+                        <span className="text-muted-2">{fmtDay(d.data_mudanca)}</span>
+                        {d.parceiro?.trim() && (
+                          <span
+                            title={`Terceiro · ${d.parceiro}`}
+                            className="rounded bg-[#FEF6E3] px-1 text-[10px] font-semibold text-[#92610a]"
+                          >
+                            terc.
                           </span>
-                        </div>
+                        )}
                         <button
                           onClick={() => setRoteiro({ deal: d })}
-                          className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg bg-primary py-1.5 text-[12.5px] font-semibold text-white hover:bg-primary-hover"
+                          className="rounded-md bg-primary px-2 py-1 text-[11.5px] font-semibold text-white hover:bg-primary-hover"
                         >
-                          <Icon name="route" className="h-3.5 w-3.5" />
                           Programar
                         </button>
                       </div>
-                    )
-                  })}
+                    ))}
+                  </div>
+                  {pendentes.length > 3 && (
+                    <button
+                      onClick={() => setVerTodas((v) => !v)}
+                      className="flex-none whitespace-nowrap pt-1 text-[12px] font-medium text-[#92610a] underline"
+                    >
+                      {verTodas ? 'recolher' : 'ver todas'}
+                    </button>
+                  )}
                 </div>
               </section>
             )}
 
             {mostraGrade && (
               <>
-                <div className="mb-3 flex flex-wrap items-center gap-2">
+                <div className="mb-2.5 flex flex-none flex-wrap items-center gap-2">
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => setInicio(addDays(inicio, -dias))}
@@ -303,6 +318,24 @@ export function ProgramacaoView({
                   <div className="text-[14px] font-bold tracking-tight">
                     {fmtDay(inicio)} → {fmtDay(fim)}
                   </div>
+                  <div className="ml-1 flex flex-wrap items-center gap-1.5 text-[11.5px] font-medium">
+                    <span className="rounded-full border border-border bg-card px-2.5 py-1 text-muted">
+                      {naJanela.length} atividades
+                    </span>
+                    <span className="rounded-full border border-border bg-card px-2.5 py-1 text-muted">
+                      {emUsoHoje}/{caminhoes.length} caminhões na rua hoje
+                    </span>
+                    {conflitosJanela.length > 0 && (
+                      <button
+                        onClick={() => setVerConflitos((v) => !v)}
+                        className="flex items-center gap-1 rounded-full border border-[#F6D3D0] bg-[#FCEBEA] px-2.5 py-1 text-[#b91c1c] hover:brightness-95"
+                      >
+                        <Icon name="alert" className="h-3 w-3" />
+                        {conflitosJanela.length} {conflitosJanela.length === 1 ? 'conflito' : 'conflitos'}
+                        <span className="opacity-70">{verConflitos ? '▲' : '▼'}</span>
+                      </button>
+                    )}
+                  </div>
                   <div className="ml-auto flex overflow-hidden rounded-[9px] border border-border-2">
                     <button onClick={() => setDias(7)} className={tabBtn(dias === 7)}>
                       Semana
@@ -313,18 +346,8 @@ export function ProgramacaoView({
                   </div>
                 </div>
 
-                <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <Resumo k="Atividades na janela" v={String(naJanela.length)} />
-                  <Resumo k="Caminhões na rua hoje" v={`${emUsoHoje} de ${caminhoes.length}`} />
-                  <Resumo k="Conflitos" v={String(conflitosJanela.length)} alerta={conflitosJanela.length > 0} />
-                </div>
-
-                {conflitosJanela.length > 0 && (
-                  <div className="mb-3 rounded-xl border border-[#F6D3D0] bg-[#FCEBEA] px-4 py-3 text-[12.5px] text-[#b91c1c]">
-                    <div className="mb-1 flex items-center gap-1.5 font-semibold">
-                      <Icon name="alert" className="h-[14px] w-[14px]" />
-                      Conflitos nesta janela
-                    </div>
+                {conflitosJanela.length > 0 && verConflitos && (
+                  <div className="mb-2.5 max-h-[96px] flex-none overflow-y-auto rounded-lg border border-[#F6D3D0] bg-[#FCEBEA] px-3 py-2 text-[12px] text-[#b91c1c]">
                     {conflitosJanela.map((e) => (
                       <button
                         key={e.id}
@@ -427,18 +450,9 @@ export function ProgramacaoView({
   )
 }
 
-function Resumo({ k, v, alerta }: { k: string; v: string; alerta?: boolean }) {
-  return (
-    <div className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-      <div className="text-[11.5px] font-medium text-muted">{k}</div>
-      <div className={'mt-0.5 text-[20px] font-bold tracking-tight ' + (alerta ? 'text-[#b91c1c]' : '')}>{v}</div>
-    </div>
-  )
-}
-
 function Legenda() {
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11.5px] text-muted">
+    <div className="mt-2 flex flex-none flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
       {Object.values(TIPOS).map((t) => (
         <span key={t.key} className="inline-flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm border" style={{ background: t.bg, borderColor: t.fg }} />

@@ -58,14 +58,23 @@ export function ProgramacaoGrid({
     return m
   }, [eventos, linhas, inicio, fim])
 
-  const colW = dias <= 7 ? 'min-w-[132px]' : 'min-w-[118px]'
+  const colW = ''
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-      <table className="w-full border-separate border-spacing-0 text-[12px]">
+    <div className="min-h-0 overflow-auto rounded-xl border border-border bg-card shadow-sm">
+      <table
+        className="w-full table-fixed border-separate border-spacing-0 text-[12px]"
+        style={{ minWidth: 150 + dias * (dias <= 7 ? 128 : 112) }}
+      >
+        <colgroup>
+          <col style={{ width: 150 }} />
+          {colunas.map((d) => (
+            <col key={d} />
+          ))}
+        </colgroup>
         <thead>
           <tr>
-            <th className="sticky left-0 z-10 min-w-[150px] border-b border-r border-border bg-card px-3 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-wide text-muted-2">
+            <th className="sticky left-0 top-0 z-30 min-w-[150px] border-b border-r border-border bg-card px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-muted-2">
               {meta === 'equipe' ? 'Caminhão' : 'Pessoa'}
             </th>
             {colunas.map((d) => {
@@ -77,7 +86,7 @@ export function ProgramacaoGrid({
                   key={d}
                   className={
                     colW +
-                    ' border-b border-border px-2 py-2 text-center font-semibold ' +
+                    ' sticky top-0 z-20 border-b border-border px-2 py-1.5 text-center font-semibold ' +
                     (dow === 0 || dow === 6 ? 'bg-[#F9FAFB]' : 'bg-card')
                   }
                 >
@@ -111,7 +120,7 @@ export function ProgramacaoGrid({
                     onClick={() => onNovo(d, l)}
                     title="Clique para programar neste dia"
                     className={
-                      'group h-[76px] cursor-pointer border-b border-border p-1 align-top transition-colors hover:bg-[#F5F8FF] ' +
+                      'group h-[60px] cursor-pointer border-b border-border p-1 align-top transition-colors hover:bg-[#F5F8FF] ' +
                       (dow === 0 || dow === 6 ? 'bg-[#F9FAFB]' : '') +
                       (d === hoje ? ' bg-[#F5F8FF]' : '')
                     }
@@ -129,7 +138,7 @@ export function ProgramacaoGrid({
                         />
                       ))}
                       {lista.length === 0 && (
-                        <span className="grid h-[60px] place-items-center text-muted-2 opacity-0 group-hover:opacity-100">
+                        <span className="grid h-[48px] place-items-center text-muted-2 opacity-0 group-hover:opacity-100">
                           <Icon name="plus" className="h-4 w-4" />
                         </span>
                       )}
